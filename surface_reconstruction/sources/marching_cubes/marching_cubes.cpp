@@ -2,4 +2,6 @@
 
 SR::MarchingCubes::MarchingCubes()
 {
+
+	
 }
