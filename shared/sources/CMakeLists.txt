@@ -1,4 +1,6 @@
 
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
 add_executable(${PROJECT_NAME} main.cpp)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")

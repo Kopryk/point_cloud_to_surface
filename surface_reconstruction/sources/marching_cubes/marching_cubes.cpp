@@ -2,18 +2,27 @@
 #include <limits>
 #include <algorithm>
 #include <ctime>
+#include <execution>
+#include <random>
 
 void SR::MarchingCubes::test()
 {
 	this->points_ = new std::vector<Position<PositionType>>;
 
-	srand(time(NULL));
+	constexpr size_t size = 1ull *  1024;
 
-	for (auto i = 0u; i < 100; i++) {
+	points_->reserve(size);
+
+	std::random_device random_device;
+	std::mt19937 engine{ random_device() };
+	std::uniform_real_distribution<PositionType> distribution(0.0f, 10000.0f);
+
+
+	for (auto i = 0ull; i < size; i++) {
 		Position < PositionType> position;
-		position.x = static_cast<float>(rand() % RAND_MAX);
-		position.y = static_cast<float>(rand() % RAND_MAX);
-		position.z = static_cast<float>(rand() % RAND_MAX);
+		position.x = distribution(engine);
+		position.y = distribution(engine);
+		position.z = distribution(engine);
 
 		points_->push_back(position);
 	}
@@ -29,8 +38,7 @@ void SR::MarchingCubes::setPoints(std::vector<UTILS::Position<UTILS::PositionTyp
 }
 
 // iterate over all points
-// and find max, min x,y,z values
-// which is bounding box
+// and find max and min for x,y,z values
 SR::BoundingBox SR::MarchingCubes::findBoundingBox()
 {
 	BoundingBox boundingBox{};
@@ -43,66 +51,41 @@ SR::BoundingBox SR::MarchingCubes::findBoundingBox()
 		abort();
 	}
 
-	// initalize bounding box
-	boundingBox.max.x = std::numeric_limits<PositionType>::min();
-	boundingBox.max.y = std::numeric_limits<PositionType>::min();
-	boundingBox.max.z = std::numeric_limits<PositionType>::min();
-	boundingBox.min.x = std::numeric_limits<PositionType>::max();
-	boundingBox.min.y = std::numeric_limits<PositionType>::max();
-	boundingBox.min.z = std::numeric_limits<PositionType>::max();
-
-
 	// find min max
 
-	boundingBox.max.x = std::max_element(points_->begin(), points_->end(), [](Position<PositionType>& a, Position<PositionType>& b)
+	auto [positionMinX, positionMaxX] = std::minmax_element(std::execution::par, points_->cbegin(), points_->cend(), [](const Position<PositionType>& a, const Position<PositionType>& b)
 		{
 			if (b.x > a.x) {
 				return true;
 			}
 			return false;
-		})->x;
+		});
 
-	boundingBox.max.y = std::max_element(points_->begin(), points_->end(), [](Position<PositionType>& a, Position<PositionType>& b)
+
+	auto [positionMinY, positionMaxY] = std::minmax_element(std::execution::par, points_->cbegin(), points_->cend(), [](const Position<PositionType>& a, const Position<PositionType>& b)
 		{
 			if (b.y > a.y) {
 				return true;
 			}
 			return false;
-		})->y;
+		});
 
-	boundingBox.max.z = std::max_element(points_->begin(), points_->end(), [](Position<PositionType>& a, Position<PositionType>& b)
+
+	auto [positionMinZ, positionMaxZ] = std::minmax_element(std::execution::par, points_->cbegin(), points_->cend(), [](const Position<PositionType>& a, const Position<PositionType>& b)
 		{
 			if (b.z > a.z) {
 				return true;
 			}
 			return false;
-		})->z;
+		});
 
-	boundingBox.min.x = std::min_element(points_->begin(), points_->end(), [](Position<PositionType>& a, Position<PositionType>& b)
-		{
-			if (b.x > a.x) {
-				return true;
-			}
-			return false;
-		})->x;
-
-	boundingBox.min.y = std::min_element(points_->begin(), points_->end(), [](Position<PositionType>& a, Position<PositionType>& b)
-		{
-			if (b.y > a.y) {
-				return true;
-			}
-			return false;
-		})->y;
-
-	boundingBox.min.z = std::min_element(points_->begin(), points_->end(), [](Position<PositionType>& a, Position<PositionType>& b)
-		{
-			if (b.z > a.z) {
-				return true;
-			}
-			return false;
-		})->z;
-
-
+	// initalize bounding box
+	boundingBox.max.x = positionMaxX->x;
+	boundingBox.max.y = positionMaxY->y;
+	boundingBox.max.z = positionMaxZ->z;
+	boundingBox.min.x = positionMinX->x;
+	boundingBox.min.y = positionMinY->y;
+	boundingBox.min.z = positionMinZ->z;
 
 	return boundingBox;
 }

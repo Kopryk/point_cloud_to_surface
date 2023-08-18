@@ -1,10 +1,9 @@
 
 set(SURFACE_RECONSTRUCTION_SOURCES 
 	${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt
+	${CMAKE_CURRENT_SOURCE_DIR}/normal_estimation.h
+	${CMAKE_CURRENT_SOURCE_DIR}/normal_estimation.cpp
 	${SURFACE_RECONSTRUCTION_SOURCES})
-
-add_subdirectory(marching_cubes)
-add_subdirectory(normal_estimation)
 
 set(SURFACE_RECONSTRUCTION_SOURCES 
 	${SURFACE_RECONSTRUCTION_SOURCES}
