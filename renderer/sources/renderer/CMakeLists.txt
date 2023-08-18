@@ -5,14 +5,7 @@ set(RENDERER_SOURCES
 	${RENDERER_SOURCES}
 )
 
-message("2")
-message("${RENDERER_SOURCES}")
-
-
 set(RENDERER_SOURCES ${RENDERER_SOURCES} PARENT_SCOPE)
-
-message("2")
-message("${RENDERER_SOURCES}")
 
 
 
