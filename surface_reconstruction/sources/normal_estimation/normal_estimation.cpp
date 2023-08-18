@@ -126,8 +126,8 @@ void SR::NormalEstimation::checkIfGpuIsAvailable()
 							float distanceDotSquared = dot(difference, difference);
 							float radiusSquared = radius * radius;
 
-							printf("distanceDotSquared=%.7f \n", distanceDotSquared);
-							printf("radiusSquared=%.7f \n", radiusSquared);
+							#printf("distanceDotSquared=%.7f \n", distanceDotSquared);
+							#printf("radiusSquared=%.7f \n", radiusSquared);
 
 							if (distanceDotSquared <= radiusSquared) {
 								normalVector += difference;
