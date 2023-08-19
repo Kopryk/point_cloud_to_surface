@@ -8,5 +8,6 @@ source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}"
 
 set_target_properties(renderer PROPERTIES LINKER_LANGUAGE CXX)
 target_include_directories(renderer PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/sources")
+target_include_directories(renderer PUBLIC "${CMAKE_SOURCE_DIR}/external/glm")
 
 target_link_libraries(renderer INTERFACE utils)
