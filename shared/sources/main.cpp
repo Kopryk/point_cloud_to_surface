@@ -81,9 +81,9 @@ int main() {
 	auto nPoints = 25;
 
 	for (int i = 0; i < nPoints; ++i) {
-		float theta = 2.0f * 3.1415 * float(i) / float(nPoints);
+		float theta = 2.0f * 3.1415f * float(i) / float(nPoints);
 		for (int j = 0; j < nPoints; ++j) {
-			float phi = 3.1415 * float(j) / float(nPoints);
+			float phi = 3.1415f * float(j) / float(nPoints);
 
 			Vertex4<float> point(0,0,0,0);
 			point.x = sin(phi) * cos(theta);
