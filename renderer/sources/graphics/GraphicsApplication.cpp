@@ -18,9 +18,9 @@ GraphicsApplication::~GraphicsApplication()
     m_meshes.clear();
 }
 
-void GraphicsApplication::init(std::vector<VertexType>& points)
+void GraphicsApplication::init(std::vector<Vertex4<float>>& points)
 {
-    m_points = points;
+   // m_points = points;
     m_display = &Display::get();
     m_display->init();
     m_camera = &Camera::get();

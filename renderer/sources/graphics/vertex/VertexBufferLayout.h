@@ -1,5 +1,4 @@
 #pragma once
-#include "../../core/utils/Vertex.h"
 #include "VertexElementGL.h"
 
 #include <vector>
