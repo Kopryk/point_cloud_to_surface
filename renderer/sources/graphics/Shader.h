@@ -45,7 +45,7 @@ private:
 template <typename T>
 void Shader::setUniform(const std::string_view name, T data)
 {
-    static_assert(false);
+    //static_assert(false);
 }
 
 template<>

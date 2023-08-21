@@ -1,6 +1,6 @@
 #include "GraphicsApplication.h"
 
-#include "../FileDialogHelper.h"
+#include "FileDialog.h"
 #include "mesh/MeshPoints.h"
 #include "utils/RenderUtils.h"
 #include <imgui.h>
@@ -119,10 +119,11 @@ void GraphicsApplication::mainLoop()
         static bool render = false;
         if (ImGui::Button("Open viewport"))
         {
-            if (auto result = FileDialogHelper::openFileDialog())
+            // TODO OPEN FILEDIALOG
+            /*if (auto result = FileDialog::openFileDialog())
             {
                 render = !render;
-            }
+            }*/
         }
         ImGui::End();
 
@@ -208,7 +209,7 @@ void GraphicsApplication::mainLoop()
 void GraphicsApplication::createMeshes(Camera* camera)
 {
     // points cloud
-    m_meshes.emplace_back(new MeshPoints(m_points, "points cloud"));
+    m_meshes.emplace_back(new MeshPoints(points, "points cloud"));
 
     for (auto& mesh : m_meshes)
     {

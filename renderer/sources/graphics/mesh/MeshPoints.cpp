@@ -6,7 +6,7 @@
 #include "../vertex/VertexArray.h"
 
 
-MeshPoints::MeshPoints(std::vector<VertexType>& points, std::string_view name) : MeshBase(name), m_points(points)
+MeshPoints::MeshPoints(std::vector<Vertex4<float>>& points, std::string_view name) : MeshBase(name), m_points(points)
 {
 
 }
@@ -64,14 +64,14 @@ void MeshPoints::initVertexBuffer()
 {
     m_vertexArray = new VertexArray();
     m_vertexArray->bind();
-    m_vertexBuffer = new VertexBuffer<VertexType>(m_points);
+    m_vertexBuffer = new VertexBuffer<Vertex4<float>>(m_points);
 
     m_vertexBufferLayout = new VertexBufferLayout();
 
     // positions
-    m_vertexBufferLayout->addElement<VertexType>();
+    m_vertexBufferLayout->addElement<Vertex4<float>>();
     // colors
-    m_vertexBufferLayout->addElement<VertexType>();
+    m_vertexBufferLayout->addElement<Vertex4<float>>();
 
     m_vertexArray->linkVertexBuffer(*m_vertexBuffer, *m_vertexBufferLayout);
 }

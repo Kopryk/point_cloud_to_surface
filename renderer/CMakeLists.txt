@@ -28,3 +28,8 @@ target_include_directories(renderer PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/sources"
 target_include_directories(renderer PUBLIC "${CMAKE_SOURCE_DIR}/external/glm")
 
 target_link_libraries(renderer INTERFACE utils)
+
+
+# ImGui is header only library
+target_include_directories(renderer PUBLIC "${CMAKE_SOURCE_DIR}/external/imgui")
+target_include_directories(renderer PUBLIC "${CMAKE_SOURCE_DIR}/external/imgui/backends")
