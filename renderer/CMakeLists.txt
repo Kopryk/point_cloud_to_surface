@@ -18,10 +18,14 @@ add_custom_command(
         $<TARGET_FILE_DIR:renderer>
 )
 
-# Add GLFW as a subdirectory
+# for now manual glfw compilation
+# create build folder inside glfw dir and run
+# cmake ..
+# cmake --build .
+
 target_include_directories(renderer PUBLIC "${CMAKE_SOURCE_DIR}/external/glfw/include")
 # Link against GLFW library
-target_link_libraries(renderer PUBLIC glfw)
+target_link_libraries(renderer PUBLIC "${CMAKE_SOURCE_DIR}/external/glfw/build/src/Debug/glfw3.lib")
 
 set_target_properties(renderer PROPERTIES LINKER_LANGUAGE CXX)
 target_include_directories(renderer PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/sources")
