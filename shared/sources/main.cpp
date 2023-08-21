@@ -59,12 +59,21 @@ int main() {
 
 	auto& ga = GraphicsApplication::get();
 	std::vector<Vertex4<float> >points;
-	points.push_back(Vertex4<float>(1, 0, 0, 0));
-	points.push_back(Vertex4<float>(0, 2, 0, 0));
-	points.push_back(Vertex4<float>(0, 0, 3, 0));
-	points.push_back(Vertex4<float>(3, 0, 3, 0));
+
+	for (int i = 0; i < 1000'000; i++) {
+
+		float x = i / 1000.0;
+		float y = i / 1000.0  - 0.5f;
+		float z = i / 1000.0 + 0.5f;
 
 
+		points.push_back(Vertex4<float>(x, 0, 0, 0));
+		points.push_back(Vertex4<float>(0, y, 0, 0));
+		points.push_back(Vertex4<float>(0, 0, z, 0));
+		points.push_back(Vertex4<float>(x, 0, z, 0));
+
+
+	}
 	ga.init(points);
 
 	ga.mainLoop();

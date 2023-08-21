@@ -20,7 +20,7 @@ GraphicsApplication::~GraphicsApplication()
 
 void GraphicsApplication::init(std::vector<Vertex4<float>>& points)
 {
-    points = points;
+    this->points = points;
     m_display = &Display::get();
     m_display->init();
     m_camera = &Camera::get();
