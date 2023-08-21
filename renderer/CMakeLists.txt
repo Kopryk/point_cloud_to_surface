@@ -18,6 +18,11 @@ add_custom_command(
         $<TARGET_FILE_DIR:renderer>
 )
 
+# Add GLFW as a subdirectory
+target_include_directories(renderer PUBLIC "${CMAKE_SOURCE_DIR}/external/glfw/include")
+# Link against GLFW library
+target_link_libraries(renderer PUBLIC glfw)
+
 set_target_properties(renderer PROPERTIES LINKER_LANGUAGE CXX)
 target_include_directories(renderer PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/sources")
 target_include_directories(renderer PUBLIC "${CMAKE_SOURCE_DIR}/external/glm")

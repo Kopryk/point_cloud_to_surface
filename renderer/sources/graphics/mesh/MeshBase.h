@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../core/utils/Vertex.h"
+
 #include "../vertex/VertexBuffer.h"
 
 #include <glm/glm.hpp>

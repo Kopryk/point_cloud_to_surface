@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../core/utils/Vertex.h"
 #include "Display.h"
 #include <vector>
 
@@ -26,9 +25,9 @@ public:
     GraphicsApplication(const GraphicsApplication&) = delete;
     GraphicsApplication& operator=(const GraphicsApplication&) = delete;
     ~GraphicsApplication();
-    void init(std::vector<VertexType>& points);
+    void init(std::vector<float>& points);
     void mainLoop();
-    std::vector<VertexType> m_points; // TODO it should be removed
+    std::vector<float> m_points; // TODO it should be removed
 
 
 private:
