@@ -35,15 +35,15 @@ void MeshPoints::updateUniforms()
     // m_shader->setUniform("u_model", m_model);
     // m_shader->setUniform("u_view", m_view);
     // m_shader->setUniform("u_projection", m_projection);
-    m_shader->setUniform("u_color", m_color);
+    //m_shader->setUniform("u_color", m_color);
     m_shader->setUniform("u_mvp", m_mvp);
 }
 
 void MeshPoints::initializeShader()
 {
 
-    m_shader = new Shader(R"(resources/shaders/basic_vertex_shader.glsl)",
-        R"(resources/shaders/basic_fragment_shader.glsl)");
+    m_shader = new Shader(R"(C:/Users/s1560/Desktop/magisterka_projekt/point_cloud_to_surface/resources/shaders/basic_vertex_shader.glsl)",
+        R"(C:/Users/s1560/Desktop/magisterka_projekt/point_cloud_to_surface/resources/shaders/basic_fragment_shader.glsl)");
 }
 
 void MeshPoints::initMvp()

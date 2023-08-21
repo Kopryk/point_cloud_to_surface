@@ -20,7 +20,7 @@ GraphicsApplication::~GraphicsApplication()
 
 void GraphicsApplication::init(std::vector<Vertex4<float>>& points)
 {
-   // m_points = points;
+    points = points;
     m_display = &Display::get();
     m_display->init();
     m_camera = &Camera::get();
@@ -119,6 +119,7 @@ void GraphicsApplication::mainLoop()
         static bool render = false;
         if (ImGui::Button("Open viewport"))
         {
+            render = !render;
             // TODO OPEN FILEDIALOG
             /*if (auto result = FileDialog::openFileDialog())
             {
