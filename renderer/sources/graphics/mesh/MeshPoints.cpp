@@ -35,7 +35,7 @@ void MeshPoints::updateUniforms()
     // m_shader->setUniform("u_model", m_model);
     // m_shader->setUniform("u_view", m_view);
     // m_shader->setUniform("u_projection", m_projection);
-    //m_shader->setUniform("u_color", m_color);
+    m_shader->setUniform("u_color", m_color);
     m_shader->setUniform("u_mvp", m_mvp);
 }
 
@@ -54,7 +54,7 @@ void MeshPoints::initMvp()
 
     m_model = glm::rotate(m_model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     //m_model = glm::translate(m_model, glm::vec3(-1.0f, 0.0f, 0.0f));
-    m_model = glm::scale(m_model, glm::vec3(0.01f));
+    m_model = glm::scale(m_model, glm::vec3(10.0f));
 
     m_mvp = m_camera->getViewProjection() * m_model;
 

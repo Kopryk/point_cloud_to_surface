@@ -58,22 +58,43 @@ int main() {
 	//normalEstimation.processOnGpu();
 
 	auto& ga = GraphicsApplication::get();
+	//std::vector<Vertex4<float> >points;
+
+	//for (int i = 0; i < 1000; i++) {
+
+	//	float x = i / 1.0;
+	//	float y = i / 1.0  - 0.5f;
+	//	float z = i / 1.0 + 0.5f;
+
+
+	//	points.push_back(Vertex4<float>(x, y, z, 0));
+	//	points.push_back(Vertex4<float>(0, y, 0, 0));
+	//	points.push_back(Vertex4<float>(0, 0, z, 0));
+	//	points.push_back(Vertex4<float>(x, 0, z, 0));
+
+
+	//}
+
+
+	// Sample data: std::vector<cl_float3> for sphere coordinates
 	std::vector<Vertex4<float> >points;
+	auto nPoints = 25;
 
-	for (int i = 0; i < 1000'000; i++) {
+	for (int i = 0; i < nPoints; ++i) {
+		float theta = 2.0f * 3.1415 * float(i) / float(nPoints);
+		for (int j = 0; j < nPoints; ++j) {
+			float phi = 3.1415 * float(j) / float(nPoints);
 
-		float x = i / 1000.0;
-		float y = i / 1000.0  - 0.5f;
-		float z = i / 1000.0 + 0.5f;
+			Vertex4<float> point(0,0,0,0);
+			point.x = sin(phi) * cos(theta);
+			point.y = sin(phi) * sin(theta);
+			point.z = cos(phi);
 
-
-		points.push_back(Vertex4<float>(x, 0, 0, 0));
-		points.push_back(Vertex4<float>(0, y, 0, 0));
-		points.push_back(Vertex4<float>(0, 0, z, 0));
-		points.push_back(Vertex4<float>(x, 0, z, 0));
-
-
+			points.push_back(point);
+		}
 	}
+
+
 	ga.init(points);
 
 	ga.mainLoop();
