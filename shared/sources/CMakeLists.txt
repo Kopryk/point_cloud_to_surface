@@ -12,4 +12,9 @@ endif()
 target_link_libraries(${PROJECT_NAME} renderer)
 target_link_libraries(${PROJECT_NAME} surface_reconstruction)
 
-
+add_custom_command(
+    TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${CMAKE_SOURCE_DIR}/external/glew-2.2.0/bin/Release/x64/glew32.dll 
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>
+)

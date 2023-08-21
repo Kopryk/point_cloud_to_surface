@@ -71,7 +71,7 @@ void MeshPoints::initVertexBuffer()
     // positions
     m_vertexBufferLayout->addElement<Vertex4<float>>();
     // colors
-    m_vertexBufferLayout->addElement<Vertex4<float>>();
+    //  m_vertexBufferLayout->addElement<Vertex4<float>>();
 
     m_vertexArray->linkVertexBuffer(*m_vertexBuffer, *m_vertexBufferLayout);
 }

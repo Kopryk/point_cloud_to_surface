@@ -4,7 +4,7 @@
 #include "normal_estimation/normal_estimation.h"
 #include "utils.h"
 #include "position.h"
-
+#include "graphics/GraphicsApplication.h"
 
 #include <thread>
 #include <vector>
@@ -29,33 +29,45 @@ int main() {
 	//		}, i, i));
 	//}
 
-	auto randomPoints = []() {
-		using namespace UTILS;
-		constexpr size_t size = 1ull * 1024;
-		auto points = std::vector<cl_float3>(size);
+	//auto randomPoints = []() {
+	//	using namespace UTILS;
+	//	constexpr size_t size = 1ull * 1024;
+	//	auto points = std::vector<cl_float3>(size);
 
-		std::random_device random_device;
-		std::mt19937 engine{ random_device() };
-		std::uniform_real_distribution<PositionType> distribution(0.0f, 1000.0f);
+	//	std::random_device random_device;
+	//	std::mt19937 engine{ random_device() };
+	//	std::uniform_real_distribution<PositionType> distribution(0.0f, 1000.0f);
 
-		for (auto i = 0ull; i < size; i++) {
-			Position < PositionType> position;
-			position.x = distribution(engine);
-			position.y = distribution(engine);
-			position.z = distribution(engine);
+	//	for (auto i = 0ull; i < size; i++) {
+	//		Position < PositionType> position;
+	//		position.x = distribution(engine);
+	//		position.y = distribution(engine);
+	//		position.z = distribution(engine);
 
-			points.at(i).x = position.x;
-			points.at(i).y = position.y;
-			points.at(i).z = position.z;
+	//		points.at(i).x = position.x;
+	//		points.at(i).y = position.y;
+	//		points.at(i).z = position.z;
 
-		}
+	//	}
 
-		return points;
-		};
+	//	return points;
+	//	};
 
-	auto points = randomPoints();
-	SR::NormalEstimation normalEstimation{ points };
-	normalEstimation.processOnGpu();
+	//auto points = randomPoints();
+	//SR::NormalEstimation normalEstimation{ points };
+	//normalEstimation.processOnGpu();
+
+	auto& ga = GraphicsApplication::get();
+	std::vector<Vertex4<float> >points;
+	points.push_back(Vertex4<float>(1, 0, 0, 0));
+	points.push_back(Vertex4<float>(0, 2, 0, 0));
+	points.push_back(Vertex4<float>(0, 0, 3, 0));
+	points.push_back(Vertex4<float>(3, 0, 3, 0));
+
+
+	ga.init(points);
+
+	ga.mainLoop();
 
 	return 0;
 }

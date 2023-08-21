@@ -36,6 +36,7 @@ public:
 		return data[index];
 	}
 
-	
+	Vertex4(T a, T b, T c, T d) : x(a), y(b), z(c), w(d) {}
+
 };
 
