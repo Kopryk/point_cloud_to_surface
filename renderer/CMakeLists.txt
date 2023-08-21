@@ -8,7 +8,7 @@ source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}"
         PREFIX "Implementation"
         FILES ${RENDERER_SOURCES})
 
-
+          
 # link with glew
 target_include_directories(renderer PUBLIC "${CMAKE_SOURCE_DIR}/external/glew-2.2.0/include")
 target_link_libraries(renderer PUBLIC "${CMAKE_SOURCE_DIR}/external/glew-2.2.0/lib/Release/x64/glew32.lib")

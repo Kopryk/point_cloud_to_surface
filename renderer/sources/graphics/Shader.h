@@ -15,6 +15,8 @@ class Shader
 {
 public:
     Shader(std::string_view vertexShaderPath, std::string_view fragmentShaderPath);
+    Shader(std::string_view vertexShaderPath, std::string_view fragmentShaderPath, std::string_view geometryShaderPath);
+
     ~Shader();
     Shader(const Shader& shader) = delete;
     Shader(Shader && shader) = delete;
@@ -33,6 +35,7 @@ public:
 private:
     GLint m_vertexShaderId;
     GLint m_fragmentShaderId;
+    GLint m_geometryShaderId;
     GLint compileShader(std::string_view shaderSource, GLenum shaderType);
     std::string getSourceShader(std::string_view shaderPath);
     char m_errorLog[512];
@@ -61,4 +64,12 @@ inline void Shader::setUniform<glm::mat4>(const std::string_view name, glm::mat4
 {
     auto location = getUniformLocation(name);
     glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(data));
+}
+
+
+template<>
+inline void Shader::setUniform<float>(const std::string_view name, float data)
+{
+    auto location = getUniformLocation(name);
+    glUniform1f(location, data);
 }

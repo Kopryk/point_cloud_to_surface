@@ -1,7 +1,7 @@
 
-add_subdirectory(mesh)
 add_subdirectory(utils)
 add_subdirectory(vertex)
+add_subdirectory(mesh)
 
 set(RENDERER_SOURCES 
 	${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt
@@ -21,6 +21,3 @@ set(RENDERER_SOURCES
 )
 
 set(RENDERER_SOURCES ${RENDERER_SOURCES} PARENT_SCOPE)
-
-
-

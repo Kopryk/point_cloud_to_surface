@@ -34,7 +34,7 @@ namespace SR {
 		std::string kernelCode;
 		std::unique_ptr<cl::Program >program;
 		std::unique_ptr<cl::CommandQueue> queue;
-		float radius = 0.2f; // TODO remove hardcoded default
+		float radius = 0.6f; // TODO remove hardcoded default
 
 
 	};

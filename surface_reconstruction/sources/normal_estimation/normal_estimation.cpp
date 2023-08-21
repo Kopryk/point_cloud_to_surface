@@ -69,7 +69,7 @@ std::optional<std::vector<cl_float3>> SR::NormalEstimation::processOnGpu()
 
 			// auto balance radius
 			// TODO - find a way to chose a good radius based on point cloud
-			radius *= 10;
+			radius *= 1.1;
 
 		}
 
@@ -126,8 +126,8 @@ void SR::NormalEstimation::checkIfGpuIsAvailable()
 							float distanceDotSquared = dot(difference, difference);
 							float radiusSquared = radius * radius;
 
-							#printf("distanceDotSquared=%.7f \n", distanceDotSquared);
-							#printf("radiusSquared=%.7f \n", radiusSquared);
+							printf("distanceDotSquared=%.7f \n", distanceDotSquared);
+							printf("radiusSquared=%.7f \n", radiusSquared);
 
 							if (distanceDotSquared <= radiusSquared) {
 								normalVector += difference;

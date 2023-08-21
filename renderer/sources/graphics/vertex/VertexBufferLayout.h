@@ -9,7 +9,9 @@ struct VertexElementGL;
 class VertexBufferLayout
 {
 public:
-	VertexBufferLayout() = default;
+
+	VertexBufferLayout(size_t startingIndex = 0) : startingIndex(startingIndex){}
+
 	~VertexBufferLayout() = default;
 	VertexBufferLayout(const VertexBufferLayout&) = delete;
 	VertexBufferLayout(VertexBufferLayout&&) = delete;
@@ -27,6 +29,7 @@ public:
 private:
 	std::vector<VertexElementGL> m_elements;
 	size_t m_offset = 0;
+	size_t startingIndex = 0;
 
 };
 
@@ -41,7 +44,7 @@ void VertexBufferLayout::addElement()
 {
 	int count = 0;
 	int sizeInBytes = 0;
-	const auto index = static_cast<GLuint>(m_elements.size());
+	const auto index = static_cast<GLuint>(m_elements.size() + startingIndex);
 
 	int stride = 0;
 

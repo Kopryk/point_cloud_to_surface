@@ -46,6 +46,7 @@ protected:
 
 	glm::vec4 m_color = glm::vec4(1.0f);
 	glm::mat4 m_mvp = glm::mat4(1.0f);// TODO link all matrices to just one
+	float lineLenght = 1.0f;
 	float m_modelPosition[3] = { 0.0f,0.0f,0.0f };
 
 	VertexArray* m_vertexArray = nullptr;

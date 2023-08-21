@@ -4,18 +4,19 @@
 
 namespace RenderErrors  // TODO
 {
-    static void clearError() {
+	static void clearError() {
 
-        while (glGetError() != GL_NO_ERROR);
-    }
+		while (glGetError() != GL_NO_ERROR);
+	}
 
-    static void checkError()
-    {
-        if (GLenum error = glGetError())
-        {
-            std::cout << "[GL ERROR: ]: " << error << "\n";
-            _ASSERT(false);
-        }
-    }
+	static void checkError()
+	{
+		if (GLenum error = glGetError())
+		{
+			std::cout << "[GL ERROR: ]: " << error << "\n";
+
+			_ASSERT(false);
+		}
+	}
 }
 

@@ -13,7 +13,9 @@ public:
     Renderer& operator=(const Renderer&) = delete;
     Renderer& operator=(Renderer&&) = delete;
 
-    void draw(VertexArray& vertexArray, Shader& shader) const;
+    void drawPoints(VertexArray& vertexArray, Shader& shader) const;
+    void drawLines(VertexArray& vertexArray, Shader& shader) const;
+
     void clear() const;
 
     void setClearColor(float clearColor[4]);

@@ -54,11 +54,11 @@ int main() {
 	//	};
 
 	//auto points = randomPoints();
-	//SR::NormalEstimation normalEstimation{ points };
-	//normalEstimation.processOnGpu();
+
 
 	auto& ga = GraphicsApplication::get();
-	//std::vector<Vertex4<float> >points;
+
+
 
 	//for (int i = 0; i < 1000; i++) {
 
@@ -85,7 +85,7 @@ int main() {
 		for (int j = 0; j < nPoints; ++j) {
 			float phi = 3.1415f * float(j) / float(nPoints);
 
-			Vertex4<float> point(0,0,0,0);
+			Vertex4<float> point(0, 0, 0, 0);
 			point.x = sin(phi) * cos(theta);
 			point.y = sin(phi) * sin(theta);
 			point.z = cos(phi);
@@ -95,9 +95,46 @@ int main() {
 	}
 
 
-	ga.init(points);
+	auto pointsToNormalize = std::vector<cl_float3>(points.size());
+	for (auto i = 0u; i < pointsToNormalize.size(); i++) {
+		pointsToNormalize[i].x = points[i].x;
+		pointsToNormalize[i].y = points[i].y;
+		pointsToNormalize[i].z = points[i].z;
+		pointsToNormalize[i].w = points[i].w;
+	}
 
-	ga.mainLoop();
+	SR::NormalEstimation normalEstimation{ pointsToNormalize };
+	auto result = normalEstimation.processOnGpu();
+
+
+
+	if (result.has_value()) {
+
+
+
+		std::vector<Vertex4<float> > normals;
+		for (auto i = 0u; i < result->size(); i++) {
+			Vertex4<float> point(0, 0, 0, 0);
+			point.x = result->at(i).x;
+			point.y = result->at(i).y;
+			point.z = result->at(i).z;
+			point.w = result->at(i).w;
+			normals.push_back(point);
+		}
+
+		ga.init(points, normals);
+
+		ga.mainLoop();
+
+	}
+	else {
+
+		ga.init(points);
+
+		ga.mainLoop();
+	}
+
+
 
 	return 0;
 }

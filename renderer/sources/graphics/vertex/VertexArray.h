@@ -42,5 +42,7 @@ void VertexArray::linkVertexBuffer(const VertexBuffer<T>& vertexBuffer, const Ve
     }
 
     setNumberPrimitives(vertexBuffer.getCount());
+
+    vertexBuffer.unbind();
 }
 

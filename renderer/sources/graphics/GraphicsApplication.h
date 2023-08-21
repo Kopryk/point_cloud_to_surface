@@ -26,10 +26,12 @@ public:
 	GraphicsApplication(const GraphicsApplication&) = delete;
 	GraphicsApplication& operator=(const GraphicsApplication&) = delete;
 	~GraphicsApplication();
+
 	void init(std::vector<Vertex4<float>>& points);
+	void init(std::vector<Vertex4<float>>& points, std::vector<Vertex4<float>>& normals);
 	void mainLoop();
 	std::vector<Vertex4<float>> points; // TODO it should be removed
-
+	std::vector<Vertex4<float>> normals; // TODO it should be removed
 
 private:
 	GraphicsApplication() = default;
@@ -37,8 +39,10 @@ private:
 	Display* m_display = nullptr;
 	Camera* m_camera = nullptr;
 	void createMeshes(Camera* camera);
+	void createMeshes2(Camera* camera);
 
-	uint32_t m_activeMesh = 0;
+
+	uint32_t m_activeMesh = 1;
 
 
 };

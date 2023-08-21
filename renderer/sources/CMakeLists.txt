@@ -1,7 +1,5 @@
 set(RENDERER_SOURCES 
 	${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt
-
-    ${RENDERER_SOURCES}
 )
 
 add_subdirectory(graphics)
