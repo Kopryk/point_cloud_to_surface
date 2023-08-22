@@ -1,40 +1,65 @@
-#include "normal_estimation.h"
+#include "voxelization.h"
 
 #include <iostream>
 
 
 
 
-SR::NormalEstimation::NormalEstimation(std::vector<cl_float3>& points) : points(points)
+SR::Voxelization::Voxelization(std::vector<cl_float3>& points) : points(points)
 {
-	//printGpuDetails();
+
 	checkIfGpuIsAvailable();
 }
 
-std::optional<std::vector<cl_float3>> SR::NormalEstimation::processOnGpu()
+std::optional<std::vector<uint8_t>> SR::Voxelization::processOnGpu()
 {
 	try {
-		auto validNormals = 0u;
-
-		while (validNormals == 0) {
-
-
 			auto numPoints = points.size();
 			auto sizePointsInBytes = numPoints * sizeof(cl_float3);
 
+			constexpr size_t voxelDim = 1000;
+			constexpr size_t nVoxels = voxelDim * voxelDim * voxelDim;
+			auto voxelsNumber = nVoxels;
+			auto voxelsInBytes = nVoxels * sizeof(uint8_t);
+			// 2.0f is hardcoded for now but its abs(-1) + 1 = range  = 2.0
+
+			auto voxelSize = 2.0f / voxelDim;
+
 			cl::Buffer inputBuffer(context, CL_MEM_READ_WRITE, sizePointsInBytes);
-			cl::Buffer outputBuffer(context, CL_MEM_WRITE_ONLY, numPoints * sizeof(cl_float3));
+			cl::Buffer voxels(context, CL_MEM_READ_WRITE, voxelsInBytes);
+
+			// Fill the buffer with zeros
+			cl_char pattern = 0;
+			size_t offset = 0;
+
+			queue->enqueueFillBuffer(voxels, pattern, offset, voxelsInBytes);
+
 			auto error = queue->enqueueWriteBuffer(inputBuffer, CL_TRUE, 0, sizePointsInBytes, points.data());
 
 			if (error) {
 				std::cout << "queue->enqueueWriteBuffer(inputBuffer, CL_TRUE, 0, sizePointsInBytes, points_.data()); error: " << error << std::endl;
 			}
 
-			cl::Kernel kernel(*program, "calculateNormalVectors");
-			kernel.setArg(0, static_cast<cl_uint>(numPoints));
-			kernel.setArg(1, radius);
-			kernel.setArg(2, inputBuffer);
-			kernel.setArg(3, outputBuffer);
+			// float* points, __global uint8_t* voxels, int numPoints, float voxelSize
+
+			cl::Kernel kernel(*program, "voxelizationKernel");
+			error = kernel.setArg(0, inputBuffer);
+			if (error) {
+				std::cout << "  kernel.setArg(0, inputBuffer) error: " << error << std::endl;
+			}
+			error = kernel.setArg(1, voxels);
+			if (error) {
+				std::cout << "  kernel.setArg(1, inputBuffer) error: " << error << std::endl;
+			}
+			error = kernel.setArg(2, static_cast<int>(numPoints));
+			if (error) {
+				std::cout << "  kernel.setArg(2, inputBuffer) error: " << error << std::endl;
+			}
+			error = kernel.setArg(3, voxelSize);
+			if (error) {
+				std::cout << "  kernel.setArg(3, inputBuffer) error: " << error << std::endl;
+			}
+
 
 			error = queue->enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(numPoints), cl::NullRange);
 			if (error) {
@@ -45,37 +70,27 @@ std::optional<std::vector<cl_float3>> SR::NormalEstimation::processOnGpu()
 				std::cout << " queue->finish(); error: " << error << std::endl;
 			}
 
-			std::vector<cl_float3> normalsVector(numPoints);
-			error = queue->enqueueReadBuffer(outputBuffer, CL_TRUE, 0, numPoints * sizeof(cl_float3), normalsVector.data());
+			std::vector<uint8_t> voxelsVec(nVoxels);
+
+			error = queue->enqueueReadBuffer(voxels, CL_TRUE, 0, voxelsInBytes, voxelsVec.data());
 			if (error) {
 				std::cout << "queue->enqueueReadBuffer(outputBuffer, CL_TRUE, 0, numPoints * sizeof(cl_float3), normalsVector.data()); error: " << error << std::endl;
 			}
 
-			std::cout << "Normals computed using fixed radius:" << std::endl;
 
-			for (const auto& normal : normalsVector) {
-				std::cout << normal.s[0] << " " << normal.s[1] << " " << normal.s[2] << std::endl;
-
-				if (normal.s[0] != 0.0f || normal.s[1] != 0.0f || normal.s[2] != 0.0f) {
-					validNormals++;
+			auto activeVoxels = 0u;
+			auto countPoints = 0u;
+			for (auto value : voxelsVec) {
+				if (value > 0) {
+					activeVoxels++;
+					countPoints += value;
 				}
-
 			}
+			std::cout << "Voxels active : " << activeVoxels << std::endl;
+			std::cout << "Counted points in all active voxels: " << countPoints << std::endl;
 
 
-			if (validNormals > numPoints -2) {
-				return normalsVector;
-			}
-
-			// auto balance radius
-			// TODO - find a way to chose a good radius based on point cloud
-			radius *= 1.2;
-
-
-		}
-
-
-
+			return voxelsVec;
 	}
 	catch (std::exception e) {
 		std::cout << "Exception error: " << e.what() << std::endl;
@@ -85,13 +100,13 @@ std::optional<std::vector<cl_float3>> SR::NormalEstimation::processOnGpu()
 	return std::nullopt;
 }
 
-bool SR::NormalEstimation::processOnCpu()
+bool SR::Voxelization::processOnCpu()
 {
 	return false;
 }
 
 
-void SR::NormalEstimation::checkIfGpuIsAvailable()
+void SR::Voxelization::checkIfGpuIsAvailable()
 {
 	try {
 		this->isGpuAvailable = false;
@@ -115,38 +130,35 @@ void SR::NormalEstimation::checkIfGpuIsAvailable()
 			return;
 		}
 
+		// 100x 100 x 100
 		kernelCode =
-			R"(void kernel calculateNormalVectors( const unsigned int numPoints, const float radius, const global float3 *inputPoints, global float3 *outputNormalVectors) {
-					size_t globalId = get_global_id(0);
-					//printf("%zu \n",globalId);
-					float3 normalVector = (float3)(0.0f, 0.0f, 0.0f);
-					unsigned int nCorrectNeighbors = 0;
-					for (size_t i = 0; i < numPoints; ++i) {
-						if (i != globalId) {
-							float3 difference = inputPoints[i] - inputPoints[globalId];
-							float distanceDotSquared = dot(difference, difference);
-							float radiusSquared = radius * radius;
+			R"(
+		void kernel voxelizationKernel(global float3* points, global uchar* voxels, int numPoints, float voxelSize) {
+			size_t id = get_global_id(0);
+			float3 point = points[id];
+			size_t voxelXIndex = (size_t)((point.x + 1.0f) / voxelSize);
 
-							//printf("distanceDotSquared=%.7f \n", distanceDotSquared);
-							//printf("radiusSquared=%.7f \n", radiusSquared);
-
-							if (distanceDotSquared <= radiusSquared) {
-								normalVector += difference;
-								nCorrectNeighbors++;
-							}
-						}
-				    }
-
-				    if (nCorrectNeighbors >= 3) {
-				        outputNormalVectors[globalId] = normalize(normalVector);
-				    } else {
-				        outputNormalVectors[globalId] = (float3)(0.0f, 0.0f, 0.0f);
-				    }
-				 })";
+			if(voxelXIndex > 999){
+				voxelXIndex = 999;			
+			}
+			size_t voxelYIndex = (size_t)((point.y + 1.0f) / voxelSize);
+			if(voxelYIndex > 999){
+				voxelYIndex = 999;			
+			}
+			size_t voxelZIndex = (size_t)((point.z + 1.0f) / voxelSize);
+			if(voxelZIndex > 999){
+				voxelZIndex = 999;			
+			}
+			size_t voxelIndex = voxelXIndex + voxelYIndex * 1000 + voxelZIndex * 1000000;
+			voxels[voxelIndex]=1;
+		})";
 
 		sources.push_back({ kernelCode.c_str(), kernelCode.length() });
 		program = std::make_unique<cl::Program>(context, sources);
-		program->build("-cl-std=CL3.0");
+		auto error = program->build("-cl-std=CL3.0");
+		if (error) {
+			std::cout << "Program build failed ! " << error << std::endl;
+		}
 		queue = std::make_unique < cl::CommandQueue>(context, device);
 
 	}
@@ -157,7 +169,7 @@ void SR::NormalEstimation::checkIfGpuIsAvailable()
 	}
 }
 
-void SR::NormalEstimation::printGpuDetails()
+void SR::Voxelization::printGpuDetails()
 {
 	try {
 		std::vector<cl::Platform> platforms;

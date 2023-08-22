@@ -10,12 +10,12 @@
 namespace SR {
 	using namespace UTILS;;
 
-	class NormalEstimation
+	class Voxelization
 	{
 	public:
-		NormalEstimation(std::vector<cl_float3>& points);
+		Voxelization(std::vector<cl_float3>& points);
 
-		std::optional<std::vector<cl_float3>> processOnGpu();
+		std::optional<std::vector<uint8_t>> processOnGpu();
 		bool processOnCpu();
 		void checkIfGpuIsAvailable();
 
@@ -34,7 +34,7 @@ namespace SR {
 		std::string kernelCode;
 		std::unique_ptr<cl::Program >program;
 		std::unique_ptr<cl::CommandQueue> queue;
-		float radius = 0.5f; // TODO remove hardcoded default
+		float radius = 0.6f; // TODO remove hardcoded default
 
 
 	};

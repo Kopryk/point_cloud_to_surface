@@ -13,6 +13,8 @@
 #include <mutex>
 #include <execution>
 #include <random>
+#include "scale/scale.h"
+#include "voxelization/voxelization.h"
 
 
 
@@ -97,6 +99,8 @@ int main() {
 	}
 
 
+
+
 	auto pointsToNormalize = std::vector<cl_float3>(points.size());
 	for (auto i = 0u; i < pointsToNormalize.size(); i++) {
 		pointsToNormalize[i].x = points[i].x;
@@ -105,8 +109,20 @@ int main() {
 		pointsToNormalize[i].w = points[i].w;
 	}
 
-	SR::NormalEstimation normalEstimation{ pointsToNormalize };
+	auto scaleHelper = SR::Scale(pointsToNormalize);
+
+	auto scalledPoints = scaleHelper.processOnGpu();
+
+
+	SR::NormalEstimation normalEstimation{ scalledPoints.value() };
 	auto result = normalEstimation.processOnGpu();
+
+
+	auto voxelHelper = SR::Voxelization(scalledPoints.value());
+	auto voxels = voxelHelper.processOnGpu();
+	if (voxels.has_value()) {
+		std::cout << "correct voxels!" << std::endl;
+	}
 
 
 
@@ -125,6 +141,7 @@ int main() {
 		}
 
 		ga.init(points, normals);
+
 
 		ga.mainLoop();
 
