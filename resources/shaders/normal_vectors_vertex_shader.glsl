@@ -2,19 +2,13 @@
 #version 330 core
 
 layout(location = 0) in vec3 inPosition;
-layout(location = 1) in vec3 inNormal;
 
-out vec3 outStartPoint;
-out vec3 outEndPoint;
-
-uniform float lineLength;
 uniform mat4 u_mvp;
 
-void main()
-{
+void main() {
+    // Calculate the transformed start point
+    vec4 transformedStartPoint = u_mvp * vec4(inPosition, 1.0f);
     
-    outStartPoint = (u_mvp * vec4(inPosition, 1.0)).xyz;
-    outEndPoint = (u_mvp * vec4(inPosition + inNormal * lineLength, 1.0)).xyz;
-
-    gl_Position = vec4(outEndPoint, 1.0);
+    // Pass the start point to the next stage
+    gl_Position = transformedStartPoint;
 }

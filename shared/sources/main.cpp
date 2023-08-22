@@ -91,6 +91,8 @@ int main() {
 			point.z = cos(phi);
 
 			points.push_back(point);
+
+
 		}
 	}
 
