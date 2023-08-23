@@ -15,6 +15,7 @@
 #include <random>
 #include "scale/scale.h"
 #include "voxelization/voxelization.h"
+#include "scalar_field/scalar_field.h"
 
 
 
@@ -124,6 +125,21 @@ int main() {
 		std::cout << "correct voxels!" << std::endl;
 	}
 
+	uint32_t xCenter = voxelHelper.xCenter;
+	uint32_t yCenter = voxelHelper.yCenter;
+	uint32_t zCenter = voxelHelper.zCenter;
+	uint32_t gridSizeX = voxelHelper.gridSizeX;
+	uint32_t gridSizeY = voxelHelper.gridSizeY;
+	uint32_t gridSizeZ = voxelHelper.gridSizeZ;
+
+
+
+	auto scalarFieldDistancesHelper = SR::ScalarField(xCenter, yCenter, zCenter, gridSizeX, gridSizeY, gridSizeZ);
+	auto scalarFieldsDistances = scalarFieldDistancesHelper.processOnGpu();
+
+	if (voxels.has_value()) {
+		std::cout << "correct scalarFieldsDistances!" << std::endl;
+	}
 
 
 	if (result.has_value()) {

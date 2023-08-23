@@ -11,86 +11,91 @@ SR::Voxelization::Voxelization(std::vector<cl_float3>& points) : points(points)
 	checkIfGpuIsAvailable();
 }
 
-std::optional<std::vector<uint8_t>> SR::Voxelization::processOnGpu()
+std::optional<std::vector<uint32_t>> SR::Voxelization::processOnGpu()
 {
 	try {
-			auto numPoints = points.size();
-			auto sizePointsInBytes = numPoints * sizeof(cl_float3);
+		auto numPoints = points.size();
+		auto sizePointsInBytes = numPoints * sizeof(cl_float3);
 
-			constexpr size_t voxelDim = 1000;
-			constexpr size_t nVoxels = voxelDim * voxelDim * voxelDim;
-			auto voxelsNumber = nVoxels;
-			auto voxelsInBytes = nVoxels * sizeof(uint8_t);
-			// 2.0f is hardcoded for now but its abs(-1) + 1 = range  = 2.0
+		constexpr size_t voxelDim = 200;
+		size_t nVoxels = gridSizeX * gridSizeY * gridSizeZ;
+		auto voxelsNumber = nVoxels;
+		auto voxelsInBytes = nVoxels * sizeof(uint32_t);
+		// 2.0f is hardcoded for now but its abs(-1) + 1 = range  = 2.0
 
-			auto voxelSize = 2.0f / voxelDim;
+		auto voxelSize = 2.0f / voxelDim;
 
-			cl::Buffer inputBuffer(context, CL_MEM_READ_WRITE, sizePointsInBytes);
-			cl::Buffer voxels(context, CL_MEM_READ_WRITE, voxelsInBytes);
+		cl::Buffer inputBuffer(context, CL_MEM_READ_WRITE, sizePointsInBytes);
+		cl::Buffer voxels(context, CL_MEM_READ_WRITE, voxelsInBytes);
 
-			// Fill the buffer with zeros
-			cl_char pattern = 0;
-			size_t offset = 0;
+		// Fill the buffer with zeros
 
-			queue->enqueueFillBuffer(voxels, pattern, offset, voxelsInBytes);
 
-			auto error = queue->enqueueWriteBuffer(inputBuffer, CL_TRUE, 0, sizePointsInBytes, points.data());
+		uint32_t pattern = invalidIndex;
+		size_t offset = 0;
 
-			if (error) {
-				std::cout << "queue->enqueueWriteBuffer(inputBuffer, CL_TRUE, 0, sizePointsInBytes, points_.data()); error: " << error << std::endl;
+		queue->enqueueFillBuffer(voxels, pattern, offset, voxelsInBytes);
+
+		auto error = queue->enqueueWriteBuffer(inputBuffer, CL_TRUE, 0, sizePointsInBytes, points.data());
+
+		if (error) {
+			std::cout << "queue->enqueueWriteBuffer(inputBuffer, CL_TRUE, 0, sizePointsInBytes, points_.data()); error: " << error << std::endl;
+		}
+
+		// float* points, __global UINT32_t* voxels, int numPoints, float voxelSize
+
+		cl::Kernel kernel(*program, "voxelizationKernel");
+		error = kernel.setArg(0, inputBuffer);
+		if (error) {
+			std::cout << "  kernel.setArg(0, inputBuffer) error: " << error << std::endl;
+		}
+		error = kernel.setArg(1, voxels);
+		if (error) {
+			std::cout << "  kernel.setArg(1, inputBuffer) error: " << error << std::endl;
+		}
+		error = kernel.setArg(2, static_cast<int>(numPoints));
+		if (error) {
+			std::cout << "  kernel.setArg(2, inputBuffer) error: " << error << std::endl;
+		}
+		error = kernel.setArg(3, voxelSize);
+		if (error) {
+			std::cout << "  kernel.setArg(3, inputBuffer) error: " << error << std::endl;
+		}
+
+
+		error = queue->enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(numPoints), cl::NullRange);
+		if (error) {
+			std::cout << " queue->enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(numPoints), cl::NullRange); error: " << error << std::endl;
+		}
+		error = queue->finish();
+		if (error) {
+			std::cout << " queue->finish(); error: " << error << std::endl;
+		}
+
+		std::vector<uint32_t> voxelsVec(nVoxels);
+
+		error = queue->enqueueReadBuffer(voxels, CL_TRUE, 0, voxelsInBytes, voxelsVec.data());
+		if (error) {
+			std::cout << "queue->enqueueReadBuffer(outputBuffer, CL_TRUE, 0, numPoints * sizeof(cl_float3), normalsVector.data()); error: " << error << std::endl;
+		}
+
+
+		auto activeVoxels = 0u;
+		auto countPoints = 0u;
+		for (auto value : voxelsVec) {
+			if (value != invalidIndex) {
+				activeVoxels++;
+				countPoints += value;
 			}
-
-			// float* points, __global uint8_t* voxels, int numPoints, float voxelSize
-
-			cl::Kernel kernel(*program, "voxelizationKernel");
-			error = kernel.setArg(0, inputBuffer);
-			if (error) {
-				std::cout << "  kernel.setArg(0, inputBuffer) error: " << error << std::endl;
-			}
-			error = kernel.setArg(1, voxels);
-			if (error) {
-				std::cout << "  kernel.setArg(1, inputBuffer) error: " << error << std::endl;
-			}
-			error = kernel.setArg(2, static_cast<int>(numPoints));
-			if (error) {
-				std::cout << "  kernel.setArg(2, inputBuffer) error: " << error << std::endl;
-			}
-			error = kernel.setArg(3, voxelSize);
-			if (error) {
-				std::cout << "  kernel.setArg(3, inputBuffer) error: " << error << std::endl;
-			}
+		}
+		std::cout << "Voxels active : " << activeVoxels << std::endl;
+		std::cout << "Counted points in all active voxels: " << countPoints << std::endl;
 
 
-			error = queue->enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(numPoints), cl::NullRange);
-			if (error) {
-				std::cout << " queue->enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(numPoints), cl::NullRange); error: " << error << std::endl;
-			}
-			error = queue->finish();
-			if (error) {
-				std::cout << " queue->finish(); error: " << error << std::endl;
-			}
+		auto index = findIndexOfCentroidVoxel(voxelsVec, numPoints, xCenter, yCenter, zCenter);
+		std::cout << " IndexOfCentroidVoxel: " << index << std::endl;
 
-			std::vector<uint8_t> voxelsVec(nVoxels);
-
-			error = queue->enqueueReadBuffer(voxels, CL_TRUE, 0, voxelsInBytes, voxelsVec.data());
-			if (error) {
-				std::cout << "queue->enqueueReadBuffer(outputBuffer, CL_TRUE, 0, numPoints * sizeof(cl_float3), normalsVector.data()); error: " << error << std::endl;
-			}
-
-
-			auto activeVoxels = 0u;
-			auto countPoints = 0u;
-			for (auto value : voxelsVec) {
-				if (value > 0) {
-					activeVoxels++;
-					countPoints += value;
-				}
-			}
-			std::cout << "Voxels active : " << activeVoxels << std::endl;
-			std::cout << "Counted points in all active voxels: " << countPoints << std::endl;
-
-
-			return voxelsVec;
+		return voxelsVec;
 	}
 	catch (std::exception e) {
 		std::cout << "Exception error: " << e.what() << std::endl;
@@ -104,7 +109,6 @@ bool SR::Voxelization::processOnCpu()
 {
 	return false;
 }
-
 
 void SR::Voxelization::checkIfGpuIsAvailable()
 {
@@ -122,7 +126,6 @@ void SR::Voxelization::checkIfGpuIsAvailable()
 				this->isGpuAvailable = true;
 				break;
 			}
-
 		}
 
 		if (this->isGpuAvailable == false) {
@@ -130,27 +133,27 @@ void SR::Voxelization::checkIfGpuIsAvailable()
 			return;
 		}
 
-		// 100x 100 x 100
+		// 200x200x200 grip for now
 		kernelCode =
 			R"(
-		void kernel voxelizationKernel(global float3* points, global uchar* voxels, int numPoints, float voxelSize) {
+		void kernel voxelizationKernel(global float3* points, global uint* voxels, int numPoints, float voxelSize) {
 			size_t id = get_global_id(0);
 			float3 point = points[id];
 			size_t voxelXIndex = (size_t)((point.x + 1.0f) / voxelSize);
 
-			if(voxelXIndex > 999){
-				voxelXIndex = 999;			
+			if(voxelXIndex > 199){
+				voxelXIndex = 199;			
 			}
 			size_t voxelYIndex = (size_t)((point.y + 1.0f) / voxelSize);
-			if(voxelYIndex > 999){
-				voxelYIndex = 999;			
+			if(voxelYIndex > 199){
+				voxelYIndex = 199;			
 			}
 			size_t voxelZIndex = (size_t)((point.z + 1.0f) / voxelSize);
-			if(voxelZIndex > 999){
-				voxelZIndex = 999;			
+			if(voxelZIndex > 199){
+				voxelZIndex = 199;			
 			}
-			size_t voxelIndex = voxelXIndex + voxelYIndex * 1000 + voxelZIndex * 1000000;
-			voxels[voxelIndex]=1;
+			size_t voxelIndex = voxelXIndex + voxelYIndex * 200 + voxelZIndex * 200*200;
+			voxels[voxelIndex]=(uint)(id);
 		})";
 
 		sources.push_back({ kernelCode.c_str(), kernelCode.length() });
@@ -167,6 +170,57 @@ void SR::Voxelization::checkIfGpuIsAvailable()
 
 		this->isGpuAvailable = false;
 	}
+}
+
+uint32_t SR::Voxelization::findIndexOfCentroidVoxel(std::vector<uint32_t>& voxelsVec, size_t nPoints, uint32_t& xCenter, uint32_t& yCenter, uint32_t& zCenter)
+{
+	uint64_t xSum = 0;
+	uint64_t ySum = 0;
+	uint64_t zSum = 0;
+
+	auto iVoxels = 0u;
+
+	for (auto x = 0u; x < gridSizeX; x++) {
+		for (auto y = 0u; y < gridSizeY; y++) {
+			for (auto z = 0u; z < gridSizeZ; z++) {
+
+				auto indexInVoxel = x + (y * gridSizeX) + (z * gridSizeX * gridSizeY);
+				auto pointIndex = voxelsVec[indexInVoxel];
+
+				bool isOccupied = pointIndex != invalidIndex;
+				if (isOccupied) {
+
+					iVoxels++;
+
+					xSum += x;
+					ySum += y;
+					zSum += z;
+				}
+			}
+		}
+	}
+
+	uint32_t xCentroidVoxel = static_cast<uint32_t>(xSum / iVoxels);
+	uint32_t yCentroidVoxel = static_cast<uint32_t>(ySum / iVoxels);
+	uint32_t zCentroidVoxel = static_cast<uint32_t>(zSum / iVoxels);
+
+	xCenter = xCentroidVoxel;
+	yCenter = yCentroidVoxel;
+	zCenter = zCentroidVoxel;
+
+
+	std::cout << "xCentroidVoxel: " << xCentroidVoxel << std::endl;
+	std::cout << "yCentroidVoxel: " << yCentroidVoxel << std::endl;
+	std::cout << "zCentroidVoxel: " << zCentroidVoxel << std::endl;
+
+
+	auto indexCentroidVoxel = xCentroidVoxel + (yCentroidVoxel * gridSizeX) + (zCentroidVoxel * gridSizeX * gridSizeY);
+
+	this->indexOfCentroidVoxel = indexCentroidVoxel;
+
+	std::cout << "indexOfCentroidVoxel: " << indexOfCentroidVoxel << std::endl;
+
+	return indexCentroidVoxel;
 }
 
 void SR::Voxelization::printGpuDetails()

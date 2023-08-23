@@ -10,32 +10,26 @@
 namespace SR {
 	using namespace UTILS;;
 
-	class Voxelization
+	class ScalarField
 	{
 	public:
-		Voxelization(std::vector<cl_float3>& points);
+		ScalarField( float refX, float refY, float refZ, uint32_t gridSizeX, uint32_t gridSizeY, uint32_t gridSizeZ);
 
-		std::optional<std::vector<uint32_t>> processOnGpu();
+		std::optional<std::vector<float>> processOnGpu();
 		bool processOnCpu();
 		void checkIfGpuIsAvailable();
-
-		uint32_t xCenter = 0u;
-		uint32_t yCenter = 0u;
-		uint32_t zCenter = 0u;
-		static constexpr uint32_t invalidIndex = std::numeric_limits<uint32_t>::max();
-		uint32_t gridSizeX = 200;
-		uint32_t gridSizeY = 200;
-		uint32_t gridSizeZ = 200;
 
 	private:
 
 		uint32_t indexOfCentroidVoxel = 0u;
+		static constexpr uint32_t invalidIndex = std::numeric_limits<uint32_t>::max();
 
-
-
-		uint32_t findIndexOfCentroidVoxel(std::vector<uint32_t>& voxelsVec, size_t nPoints, uint32_t& xCenter, uint32_t& yCenter, uint32_t& zCenter);
-
-		std::vector< cl_float3>& points;
+		const float refX = 0;
+		const float refY = 0;
+		const float refZ = 0;
+		const uint32_t gridSizeX = 200;
+		const uint32_t gridSizeY = 200;
+		const uint32_t gridSizeZ = 200;
 
 		bool isGpuAvailable = false;
 		// this function should be write somewhere else

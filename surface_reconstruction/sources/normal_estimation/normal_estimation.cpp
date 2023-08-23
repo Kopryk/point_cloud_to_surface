@@ -69,7 +69,7 @@ std::optional<std::vector<cl_float3>> SR::NormalEstimation::processOnGpu()
 
 			// auto balance radius
 			// TODO - find a way to chose a good radius based on point cloud
-			radius *= 1.2;
+			radius *= 1.2f;
 
 
 		}
