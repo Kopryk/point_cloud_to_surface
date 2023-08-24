@@ -1,15 +1,9 @@
 
 set(SURFACE_RECONSTRUCTION_SOURCES 
 	${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt
+	${CMAKE_CURRENT_SOURCE_DIR}/divergence.h
+	${CMAKE_CURRENT_SOURCE_DIR}/divergence.cpp
 	${SURFACE_RECONSTRUCTION_SOURCES})
-
-add_subdirectory(divergence)
-add_subdirectory(scalar_field)
-add_subdirectory(scale)
-add_subdirectory(marching_cubes)
-add_subdirectory(normal_estimation)
-add_subdirectory(voxelization)
-
 
 set(SURFACE_RECONSTRUCTION_SOURCES 
 	${SURFACE_RECONSTRUCTION_SOURCES}

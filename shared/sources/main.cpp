@@ -16,6 +16,7 @@
 #include "scale/scale.h"
 #include "voxelization/voxelization.h"
 #include "scalar_field/scalar_field.h"
+#include "divergence/divergence.h"
 
 
 
@@ -116,7 +117,7 @@ int main() {
 
 
 	SR::NormalEstimation normalEstimation{ scalledPoints.value() };
-	auto result = normalEstimation.processOnGpu();
+	auto normals = normalEstimation.processOnGpu();
 
 
 	auto voxelHelper = SR::Voxelization(scalledPoints.value());
@@ -142,21 +143,42 @@ int main() {
 	}
 
 
-	if (result.has_value()) {
+
+
+	auto divergenceHelper = SR::Divergence(normals.value(), voxels.value(), 0, gridSizeX, gridSizeY, gridSizeZ);
+
+	auto divergences = divergenceHelper.processOnGpu();
+
+
+	if (divergences.has_value()) {
+	
+
+		int correctDivergences = 0;
+		for (auto value : divergences.value()) {
+			if (value != 0.0f) {
+				correctDivergences++;
+				
+			}
+		}
+		std::cout << "correct divergences! n: "<< correctDivergences << std::endl;
+	}
+
+
+	if (normals.has_value()) {
 
 
 
-		std::vector<Vertex4<float> > normals;
-		for (auto i = 0u; i < result->size(); i++) {
+		std::vector<Vertex4<float> > normals4f;
+		for (auto i = 0u; i < normals->size(); i++) {
 			Vertex4<float> point(0, 0, 0, 0);
-			point.x = result->at(i).x;
-			point.y = result->at(i).y;
-			point.z = result->at(i).z;
-			point.w = result->at(i).w;
-			normals.push_back(point);
+			point.x = normals->at(i).x;
+			point.y = normals->at(i).y;
+			point.z = normals->at(i).z;
+			point.w = normals->at(i).w;
+			normals4f.push_back(point);
 		}
 
-		ga.init(points, normals);
+		ga.init(points, normals4f);
 
 
 		ga.mainLoop();

@@ -3,7 +3,11 @@
 #include <iostream>
 
 
-
+// normal vectors indices
+// index = x + (y*gridSizeX) + (z*gridSizeX * gridSizeY);
+// normalVector[index];
+// some normalVector has emtpy data when voxel is empty
+// to check if voxel is empty check voxel array if value != invalidValue ( invalidValue == maxUint32_t)
 
 SR::NormalEstimation::NormalEstimation(std::vector<cl_float3>& points) : points(points)
 {
