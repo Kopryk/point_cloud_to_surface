@@ -81,15 +81,12 @@ std::optional<std::vector<uint32_t>> SR::Voxelization::processOnGpu()
 
 
 		auto activeVoxels = 0u;
-		auto countPoints = 0u;
 		for (auto value : voxelsVec) {
 			if (value != invalidIndex) {
 				activeVoxels++;
-				countPoints += value;
 			}
 		}
 		std::cout << "Voxels active : " << activeVoxels << std::endl;
-		std::cout << "Counted points in all active voxels: " << countPoints << std::endl;
 
 
 		auto index = findIndexOfCentroidVoxel(voxelsVec, numPoints, xCenter, yCenter, zCenter);

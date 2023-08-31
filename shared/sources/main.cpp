@@ -15,8 +15,11 @@
 #include <random>
 #include "scale/scale.h"
 #include "voxelization/voxelization.h"
+#include "voxelization_with_average/voxelization_with_average.h"
+
 #include "scalar_field/scalar_field.h"
 #include "divergence/divergence.h"
+#include "weighted_poisson_equation/weighted_poisson_equation.h"
 
 
 
@@ -101,7 +104,7 @@ int main() {
 	}
 
 
-
+	std::cout << "Points size = " << points.size() << std::endl;
 
 	auto pointsToNormalize = std::vector<cl_float3>(points.size());
 	for (auto i = 0u; i < pointsToNormalize.size(); i++) {
@@ -120,48 +123,87 @@ int main() {
 	auto normals = normalEstimation.processOnGpu();
 
 
-	auto voxelHelper = SR::Voxelization(scalledPoints.value());
-	auto voxels = voxelHelper.processOnGpu();
-	if (voxels.has_value()) {
+	//auto voxelHelper = SR::Voxelization(scalledPoints.value());
+	//auto voxels = voxelHelper.processOnGpu();
+	//if (voxels.has_value()) {
+	//	std::cout << "correct voxels!" << std::endl;
+	//}
+
+
+	uint32_t gridSizeX = 16;
+	uint32_t gridSizeY = 16;
+	uint32_t gridSizeZ = 16;
+
+	auto nVoxels = gridSizeX * gridSizeY * gridSizeZ;
+	std::vector<cl_float3> normalsInVoxels(nVoxels);
+
+	auto voxelHelper = SR::VoxelizationWithAverage(scalledPoints.value(), normals.value(), normalsInVoxels, gridSizeX, gridSizeY, gridSizeZ);
+	auto voxelsAverage = voxelHelper.processOnGpu();
+	if (voxelsAverage.has_value()) {
 		std::cout << "correct voxels!" << std::endl;
 	}
+	
+
+
 
 	uint32_t xCenter = voxelHelper.xCenter;
 	uint32_t yCenter = voxelHelper.yCenter;
-	uint32_t zCenter = voxelHelper.zCenter;
+	uint32_t zCenter = voxelHelper.zCenter;/*
 	uint32_t gridSizeX = voxelHelper.gridSizeX;
 	uint32_t gridSizeY = voxelHelper.gridSizeY;
-	uint32_t gridSizeZ = voxelHelper.gridSizeZ;
+	uint32_t gridSizeZ = voxelHelper.gridSizeZ;*/
 
 
 
 	auto scalarFieldDistancesHelper = SR::ScalarField(xCenter, yCenter, zCenter, gridSizeX, gridSizeY, gridSizeZ);
 	auto scalarFieldsDistances = scalarFieldDistancesHelper.processOnGpu();
 
-	if (voxels.has_value()) {
+	if (scalarFieldsDistances.has_value()) {
 		std::cout << "correct scalarFieldsDistances!" << std::endl;
 	}
 
 
 
 
-	auto divergenceHelper = SR::Divergence(normals.value(), voxels.value(), 0, gridSizeX, gridSizeY, gridSizeZ);
+	auto divergenceHelper = SR::Divergence(normals.value(), normalsInVoxels, voxelHelper.voxelsWtinIndices, 0, gridSizeX, gridSizeY, gridSizeZ);
 
 	auto divergences = divergenceHelper.processOnGpu();
 
 
 	if (divergences.has_value()) {
-	
+
 
 		int correctDivergences = 0;
 		for (auto value : divergences.value()) {
 			if (value != 0.0f) {
 				correctDivergences++;
-				
+
 			}
 		}
-		std::cout << "correct divergences! n: "<< correctDivergences << std::endl;
+		std::cout << "correct divergences! n: " << correctDivergences << std::endl;
 	}
+
+
+	auto weightedPoissonEquationHelper = SR::WeightedPoissonEquation::WeightedPoissonEquation(divergences.value(), scalarFieldsDistances.value(), voxelHelper.voxelsWtinIndices, 0, gridSizeX, gridSizeY, gridSizeZ);
+
+	auto scalarFieldsUpdated = weightedPoissonEquationHelper.processOnGpu();
+
+	int countDifferences = 0;
+
+	if (scalarFieldsUpdated.has_value()) {
+		for (int i = 0; i < scalarFieldsUpdated.value().size(); i++) {
+			auto before = scalarFieldsDistances.value()[i];
+			auto after = scalarFieldsUpdated.value()[i];
+			if (before != after) {
+				std::cout << " diff i = " << i << std::endl;
+				std::cout << "before = " << before << std::endl;
+				std::cout << "after = " << after << std::endl;
+				std::cout << std::endl;
+				countDifferences++;
+			}
+		}
+	}
+	std::cout << " scalar Fields updated n= " << countDifferences << std::endl;
 
 
 	if (normals.has_value()) {

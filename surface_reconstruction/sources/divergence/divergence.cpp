@@ -4,8 +4,9 @@
 
 
 
-SR::Divergence::Divergence(std::vector<cl_float3>& normalVectors, std::vector<uint32_t>& voxels, uint32_t invalidVoxelValue, uint32_t gridSizeX, uint32_t gridSizeY, uint32_t gridSizeZ) :
+SR::Divergence::Divergence(std::vector<cl_float3>& normalVectors, std::vector<cl_float3>& normalsInVoxels, std::vector<uint32_t>& voxels, uint32_t invalidVoxelValue, uint32_t gridSizeX, uint32_t gridSizeY, uint32_t gridSizeZ) :
 	normalVectors(normalVectors),
+	normalsInVoxels(normalsInVoxels),
 	voxels(voxels),
 	invalidVoxelValue(std::numeric_limits<uint32_t>::max()),
 	gridSizeX(gridSizeX),
@@ -35,10 +36,10 @@ std::optional<std::vector<float>> SR::Divergence::processOnGpu()
 
 		auto normalsInBytes = normalVectors.size() * sizeof(cl_float3);
 
-		cl::Buffer normals(context, CL_MEM_READ_WRITE, normalsInBytes);
-		auto error = queue->enqueueWriteBuffer(normals, CL_TRUE, 0, normalsInBytes, normalVectors.data());
+		cl::Buffer normalsPerVoxelCl(context, CL_MEM_READ_WRITE, normalsInBytes);
+		auto error = queue->enqueueWriteBuffer(normalsPerVoxelCl, CL_TRUE, 0, normalsInBytes, normalVectors.data());
 		if (error) {
-			std::cout << " queue->enqueueWriteBuffer(normals, CL_TRUE, 0, normalsInBytes, normalVectors.data()); Error: " << error << std::endl;
+			std::cout << " queue->enqueueWriteBuffer(normalsPerVoxelCl, CL_TRUE, 0, normalsInBytes, normalVectors.data()); Error: " << error << std::endl;
 		}
 
 		auto voxelsInBytes = nVoxels * sizeof(uint32_t);
@@ -48,16 +49,25 @@ std::optional<std::vector<float>> SR::Divergence::processOnGpu()
 			std::cout << " queue->enqueueWriteBuffer(voxelsCl, CL_TRUE, 0, voxelsInBytes, voxels.data()); Error: " << error << std::endl;
 		}
 
-		int radiusForNeigherhood = 4;
+
+		//
+		//
+		//
+		//
+		/*void kernel calculateDivergence(global float* divergences,
+			global float3 * normalsPerVoxel,
+			global uint * voxels,
+			int gridSizeX, int gridSizeY, int gridSizeZ, uint invalidVoxelValue)*/
+
 
 		cl::Kernel kernel(*program, "calculateDivergence");
 		 error = kernel.setArg(0, divergencesCl);
 		if (error) {
 			std::cout << "  kernel.setArg(0, DivergenceDistances) error: " << error << std::endl;
 		}
-		error = kernel.setArg(1, normals);
+		error = kernel.setArg(1, normalsPerVoxelCl);
 		if (error) {
-			std::cout << "  kernel.setArg(1, normals) error: " << error << std::endl;
+			std::cout << "  kernel.setArg(1, normalsPerVoxelCl) error: " << error << std::endl;
 		}
 		error = kernel.setArg(2, voxelsCl);
 		if (error) {
@@ -75,11 +85,7 @@ std::optional<std::vector<float>> SR::Divergence::processOnGpu()
 		if (error) {
 			std::cout << "  kernel.setArg(5, gridSizeZ) error: " << error << std::endl;
 		}
-		error = kernel.setArg(6, radiusForNeigherhood);
-		if (error) {
-			std::cout << "  kernel.setArg(6, radiusForNeigherhood) error: " << error << std::endl;
-		}
-		error = kernel.setArg(7, invalidVoxelValue);
+		error = kernel.setArg(6, invalidVoxelValue);
 		if (error) {
 			std::cout << "  kernel.setArg(6, invalidVoxelValue) error: " << error << std::endl;
 		}
@@ -91,17 +97,22 @@ std::optional<std::vector<float>> SR::Divergence::processOnGpu()
 		if (error) {
 			std::cout << " queue->enqueueNDRangeKernel(kernel, cl::NullRange, globalSize); error: " << error << std::endl;
 		}
+
 		error = queue->finish();
 		if (error) {
 			std::cout << " queue->finish(); error: " << error << std::endl;
 		}
 
 		std::vector<float> divergencesVector(nVoxels);
-
 		error = queue->enqueueReadBuffer(divergencesCl, CL_TRUE, 0, divergenceInBytes, divergencesVector.data());
 		if (error) {
 			std::cout << "enqueueReadBuffer(divergencesCl, CL_TRUE, 0, divergenceInBytes, divergencesVector.data()); error: " << error << std::endl;
 		}
+		error = queue->finish();
+		if (error) {
+			std::cout << " queue->finish(); error: " << error << std::endl;
+		}
+		
 
 		return divergencesVector;
 	}
@@ -141,7 +152,7 @@ void SR::Divergence::checkIfGpuIsAvailable()
 			return;
 		}
 
-		// 200x200x200 grip for now
+		// 32x32x32 grip for now
 
 		// normalVectors are indexed with indexes of points in point cloud
 		// voxels contains index of a point inside voxel or invalidIndex
@@ -149,280 +160,61 @@ void SR::Divergence::checkIfGpuIsAvailable()
 
 		kernelCode = R"( 
 
-		void kernel calculateDivergence(global float* divergence,
-										   global float3 * normalVectors,
-										   global uint* voxels,
-										   int GRID_SIZE_X, int GRID_SIZE_Y, int GRID_SIZE_Z,
-										   int r, uint invalidVoxelValue) 
+		void kernel calculateDivergence(	global float* divergences,
+										    global float3 * normalsPerVoxel,
+										    global uint* voxels,
+										    int gridSizeX, int gridSizeY, int gridSizeZ, uint invalidVoxelValue) 
 {
 
 			
-			int x = get_global_id(0);
-			int y = get_global_id(1);
-			int z = get_global_id(2);
+			uint x = get_global_id(0);
+			uint y = get_global_id(1);
+			uint z = get_global_id(2);
 		
-			int index = x + y * GRID_SIZE_X + z * GRID_SIZE_X * GRID_SIZE_Y;
+			uint index = x + (y * gridSizeX) + (z * gridSizeX * gridSizeY);
 
 			// skip empty voxels
 			if(voxels[index] == invalidVoxelValue)
 			{
 				return;
 			}
-    
-			int indexInNormalVector = voxels[index];
 
-			float3 normal = normalVectors[indexInNormalVector];
-			float dNx_dx = 0.0f;
-			float dNy_dy = 0.0f;
-			float dNz_dz = 0.0f;
-    
-			// find left and right voxels which are not empty
-			// check if left voxel is not empty if not find left voxel in "r" range
-			
-			//
-			//
-			//	left, right directions
-			//
-			//
 
-			int leftX = x-1;
-			int leftIndex = leftX + y * GRID_SIZE_X + z * GRID_SIZE_X * GRID_SIZE_Y;
+			float divergenceX = 0.0f;
+			float divergenceY = 0.0f;
+			float divergenceZ = 0.0f;
+			float3 normal = normalsPerVoxel[index];
 
-			bool isEmptyVoxelLeft = true;
 
-			// boundary condition
-			if(x <= 0){
-					isEmptyVoxelLeft=true;
-			}else{
-				for(int i=0; i<r; i++){
-					if(voxels[leftIndex] == invalidVoxelValue){
-						leftX--;
-						leftIndex = leftX + y * GRID_SIZE_X + z * GRID_SIZE_X * GRID_SIZE_Y;
-						isEmptyVoxelLeft=true;
-					}
-					else{
-						isEmptyVoxelLeft=false;
-						break;
-					}
-					// check if we didn't cross range
-					if(leftX<0){
-						isEmptyVoxelLeft=true;
-						break;	
-					}
-				}
+			if (x > 0 && voxels[index - 1] != invalidVoxelValue ) {
+				divergenceX += normal.x - normalsPerVoxel[index - 1].x;
 			}
-			
-			int rightX = index+1;
-			int rightIndex = rightX + y * GRID_SIZE_X + z * GRID_SIZE_X * GRID_SIZE_Y;
-			// check if right voxel is not empty if not find left voxel in "r" range
-			bool isEmptyVoxelRight = true;
-
-			// boundary condition
-			if(x >= GRID_SIZE_X-1){
-					isEmptyVoxelRight=true;
-			}else{
-				for(int i=0; i<r; i++){
-					if(voxels[rightIndex] == invalidVoxelValue){
-						rightX++;
-						rightIndex = rightX + y * GRID_SIZE_X + z * GRID_SIZE_X * GRID_SIZE_Y;
-						isEmptyVoxelRight=true;
-					}
-					else{
-						isEmptyVoxelRight=false;
-						break;
-					}
-					// check if we didn't cross range
-					if(rightX > GRID_SIZE_X-1){
-						isEmptyVoxelRight=true;
-						break;	
-					}
-				}
-			}
-
-			uint indexNormalVectorLeft = voxels[leftIndex];
-			uint indexNormalVectorRight = voxels[rightIndex];
-
-
-			if((isEmptyVoxelLeft==false) && (isEmptyVoxelRight==false)){
-				dNx_dx = (normalVectors[indexNormalVectorRight].x - normalVectors[indexNormalVectorLeft].x) * 0.5f; // Central finite differences
-			}
-			else if(isEmptyVoxelLeft == false){	// if left voxel is not empty 
-				dNx_dx = (normal.x - normalVectors[indexNormalVectorLeft].x); // Backward finite differences
-			}
-			else if(isEmptyVoxelRight == false){// if right voxel is not empty 
-				dNx_dx = (normalVectors[indexNormalVectorRight].x - normal.x); // Forward finite differences
-			}
-			else{
-				dNx_dx=0.0f;
-
+			if (x < gridSizeX - 1 && voxels[index + 1] != invalidVoxelValue) {
+				divergenceX += normalsPerVoxel[index + 1].x - normal.x;
 			}
 
 
-			//
-			//
-			//	top, bottom directions
-			//
-			//
-
-			int topY = y-1;
-			int topIndex = x + topY * GRID_SIZE_X + z * GRID_SIZE_X * GRID_SIZE_Y;
-
-			bool isEmptyVoxelTop = true;
-
-			// boundary condition
-			if(y <= 0){
-					isEmptyVoxelTop=true;
-			}else{
-				for(int i=0; i<r; i++){
-					if(voxels[topIndex] == invalidVoxelValue){
-						topY--;
-						topIndex = x + topY * GRID_SIZE_X + z * GRID_SIZE_X * GRID_SIZE_Y;
-						isEmptyVoxelTop=true;
-					}
-					else{
-						isEmptyVoxelTop=false;
-						break;
-					}
-					// check if we didn't cross range
-					if(topY<0){
-						isEmptyVoxelTop=true;
-						break;	
-					}
-				}
+			uint yIndexA = index - gridSizeX;
+			if (y > 0 && voxels[yIndexA] != invalidVoxelValue) {
+				divergenceY += normal.y - normalsPerVoxel[yIndexA].y;
 			}
-			
-			int bottomY = y+1;
-			int bottomIndex = x + bottomY * GRID_SIZE_X + z * GRID_SIZE_X * GRID_SIZE_Y;
-			// check if right voxel is not empty if not find left voxel in "r" range
-			bool isEmptyVoxelBottom = true;
-
-			// boundary condition
-			if(y >= GRID_SIZE_Y-1){
-					isEmptyVoxelBottom=true;
-			}else{
-				for(int i=0; i<r; i++){
-					if(voxels[bottomIndex] == invalidVoxelValue){
-						bottomY++;
-						bottomIndex = x + bottomY * GRID_SIZE_X + z * GRID_SIZE_X * GRID_SIZE_Y;
-						isEmptyVoxelBottom=true;
-					}
-					else{
-						isEmptyVoxelBottom=false;
-						break;
-					}
-					// check if we didn't cross range
-					if(bottomY > GRID_SIZE_Y-1){
-						isEmptyVoxelBottom=true;
-						break;	
-					}
-				}
+			uint yIndexB = index + gridSizeX;
+			if (y < gridSizeY - 1 && voxels[yIndexB] != invalidVoxelValue) {
+				divergenceY += normalsPerVoxel[yIndexB].y - normal.y;
 			}
 
 
-			uint indexNormalVectorBottom = voxels[bottomIndex];
-			uint indexNormalVectorTop = voxels[topIndex];
-			
-			if((isEmptyVoxelBottom==false) && (isEmptyVoxelTop==false)){
-				dNy_dy = (normalVectors[indexNormalVectorBottom].y - normalVectors[indexNormalVectorTop].y) * 0.5f; // Central finite differences
+			uint zIndexA = index - (gridSizeX * gridSizeY);
+			if (z > 0 && voxels[zIndexA] != invalidVoxelValue) {
+				divergenceZ += normal.z - normalsPerVoxel[zIndexA].z;
 			}
-			else if(isEmptyVoxelTop == false){
-				dNy_dy = (normal.y - normalVectors[indexNormalVectorTop].y); // Backward finite differences
-			}
-			else if(isEmptyVoxelBottom == false){// if right voxel is not empty 
-				dNy_dy = (normalVectors[indexNormalVectorBottom].y - normal.y); // Forward finite differences
-			}
-			else{
-				dNy_dy=0.0f;
+			uint zIndexB = index + (gridSizeX * gridSizeY);
+			if (z < gridSizeZ - 1 && voxels[zIndexB] != invalidVoxelValue) {
+				divergenceZ += normalsPerVoxel[zIndexB].z - normal.z;
 			}
 
-			// END TOP/BOTTOM
 
-			
-			//
-			//
-			//	forward, backward directions
-			//
-			//
-
-			int forwardZ = z-1;
-			int forwardIndex = x + y * GRID_SIZE_X + forwardZ * GRID_SIZE_X * GRID_SIZE_Y;
-
-			bool isEmptyVoxelForward = true;
-
-			// boundary condition
-			if(z <= 0){
-					isEmptyVoxelForward=true;
-			}else{
-				for(int i=0; i<r; i++){
-					if(voxels[forwardIndex] == invalidVoxelValue){
-						forwardZ--;
-						forwardIndex = x + y * GRID_SIZE_X + forwardZ * GRID_SIZE_X * GRID_SIZE_Y;
-						isEmptyVoxelForward=true;
-					}
-					else{
-						isEmptyVoxelForward=false;
-						break;
-					}
-					// check if we didn't cross range
-					if(forwardZ<0){
-						isEmptyVoxelForward=true;
-						break;	
-					}
-				}
-			}
-			
-			int backwardZ = z+1;
-			int backwardIndex = x + y * GRID_SIZE_X + backwardZ * GRID_SIZE_X * GRID_SIZE_Y;
-			// check if right voxel is not empty if not find left voxel in "r" range
-			bool isEmptyVoxelBackward = true;
-
-			// boundary condition
-			if(z >= GRID_SIZE_Z-1){
-					isEmptyVoxelBackward=true;
-			}else{
-				for(int i=0; i<r; i++){
-					if(voxels[backwardIndex] == invalidVoxelValue){
-						backwardZ++;
-						backwardIndex = x + y * GRID_SIZE_X + backwardZ * GRID_SIZE_X * GRID_SIZE_Y;
-						isEmptyVoxelBackward=true;
-					}
-					else{
-						isEmptyVoxelBackward=false;
-						break;
-					}
-					// check if we didn't cross range
-					if(backwardZ > GRID_SIZE_Z-1){
-						isEmptyVoxelBackward=true;
-						break;	
-					}
-				}
-			}
-
-			
-			uint indexNormalVectorForward = voxels[forwardIndex];
-			uint indexNormalVectorBackward = voxels[backwardIndex];
-			
-
-			if((isEmptyVoxelForward==false) && (isEmptyVoxelBackward==false)){
-				dNz_dz = (normalVectors[indexNormalVectorBackward].z - normalVectors[indexNormalVectorForward].z) * 0.5f; // Central finite differences
-			}
-			else if(isEmptyVoxelBackward == false){
-				dNz_dz = (normal.z - normalVectors[indexNormalVectorBackward].z); // Backward finite differences
-			}
-			else if(isEmptyVoxelForward == false){//
-				dNz_dz = (normalVectors[indexNormalVectorForward].z - normal.z); // Forward finite differences
-			}
-			else{
-				dNz_dz =0.0f;
-			}
-
-			// END backward/forward
-
-			printf("%.6f\n", dNx_dx);
-			printf("%.6f\n", dNy_dy);
-			printf("%.6f\n", dNz_dz);
-			divergence[index] = dNx_dx + dNy_dy + dNz_dz;
-			
+			divergences[index] = divergenceX + divergenceY + divergenceZ;
 		}
 )";
 

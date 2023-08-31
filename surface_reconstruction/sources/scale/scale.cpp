@@ -65,10 +65,16 @@ std::optional<std::vector<cl_float3>> SR::Scale::processOnGpu()
 		const float maxY = positionMaxY->y;
 		const float minZ = positionMinZ->z;
 		const float maxZ = positionMaxZ->z;
-		const float minRange = -1.0f;
-		const float maxRange = 1.0f;
+		const float minRange = 0.0f;
+		const float maxRange = 999.0f;
 
-
+		std::cout << "Before scalling!\n";
+		std::cout << " minX : " << minX << std::endl;
+		std::cout << " maxX : " << maxX << std::endl;
+		std::cout << " minY : " << minY << std::endl;
+		std::cout << " maxY : " << maxY << std::endl;
+		std::cout << " minZ : " << minZ << std::endl;
+		std::cout << " maxZ : " << maxZ << std::endl;
 
 
 		error = kernel.setArg(0, inputOutputBuffer);
@@ -124,12 +130,8 @@ std::optional<std::vector<cl_float3>> SR::Scale::processOnGpu()
 		}
 
 		std::cout << "scalled points to range :" << std::endl;
-		std::cout << " minX : " << minX << std::endl;
-		std::cout << " maxX : " << maxX << std::endl;
-		std::cout << " minY : " << minY << std::endl;
-		std::cout << " maxY : " << maxY << std::endl;
-		std::cout << " minZ : " << minZ << std::endl;
-		std::cout << " maxZ : " << maxZ << std::endl;
+
+
 		std::cout << " minRange : " << minRange << std::endl;
 		std::cout << " maxRange : " << maxRange << std::endl;
 
