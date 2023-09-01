@@ -3,6 +3,7 @@ set(SURFACE_RECONSTRUCTION_SOURCES
 	${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt
 	${SURFACE_RECONSTRUCTION_SOURCES})
 
+add_subdirectory(octree)
 add_subdirectory(weighted_poisson_equation)
 add_subdirectory(divergence)
 add_subdirectory(scalar_field)
