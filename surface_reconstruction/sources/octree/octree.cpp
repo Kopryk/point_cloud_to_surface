@@ -1,6 +1,7 @@
-#include "octree.h"
+#include "Octree.h"
+#include <iostream>
 
-void Octree::insert(Point& point, uint32_t depth)
+void OctreeNode::insert(Point& point, uint32_t depth)
 {
 	if (isPointInsideBoundingBox(point) == false) {
 		return;
@@ -34,7 +35,7 @@ void Octree::insert(Point& point, uint32_t depth)
 
 }
 
-bool Octree::isPointInsideBoundingBox(Point& point)
+bool OctreeNode::isPointInsideBoundingBox(Point& point)
 {
 
 	return (point.x >= boundingBox.min.x && point.x <= boundingBox.max.x) &&
@@ -43,7 +44,112 @@ bool Octree::isPointInsideBoundingBox(Point& point)
 
 }
 
-void Octree::subdivide()
+std::vector<Point> OctreeNode::findNeigborsInRadius(Point p) {
+
+	float radius = 0.01f;
+
+	// check neighbors size if in range (minNeighbors, maxNeighbors)
+	// if to big decrese radius
+	// if to small increase radius
+
+	auto maxIterations = 1'000'000u;
+	while (maxIterations--) {
+		auto neighbors = queryRadius(p, radius);
+		if (neighbors.size() >= this->minNeighbors && neighbors.size() <= this->maxNeighbors) {
+			return neighbors;
+		}
+
+		if (neighbors.size() > this->maxNeighbors) {
+			radius = radius * 0.9;
+		}
+
+		if (neighbors.size() < this->minNeighbors) {
+			radius = radius * 2;
+		}
+	}
+
+	if (maxIterations == 0) {
+		std::cout << __LINE__ << "findNeigborsInRadius ERROR: MAX_ITERATIONS!" << std::endl;
+	}
+	
+
+	return {};
+}
+
+std::vector<Point> OctreeNode::queryRadius(Point p, float radius)
+{
+
+	std::vector<Point> neighbourhoodPoints;
+	// check if the sphere intersects current octree node's bounding box
+	if (!intersectsSphere(p, radius)) {
+		return neighbourhoodPoints;	// return empty
+	}
+
+	for (const auto& point : points) {
+		if (distance(point, p) <= radius) {
+			neighbourhoodPoints.push_back(point);
+		}
+	}
+	for (int i = 0; i < maxChildren; i++) {
+		if (children[i]) {
+			auto childPoints = children[i]->queryRadius(p, radius);
+			neighbourhoodPoints.insert(std::end(neighbourhoodPoints), std::begin(childPoints), std::end(childPoints));
+		}
+	}
+
+	return neighbourhoodPoints;
+
+}
+
+float OctreeNode::distance(const Point& a, const Point& b)
+{
+
+	float dx = a.x - b.x;
+	float dy = a.y - b.y;
+	float dz = a.z - b.z;
+	return std::sqrt(dx * dx + dy * dy + dz * dz);
+
+
+}
+
+bool OctreeNode::intersectsSphere(const Point& sphereCenter, float radius)
+{
+	{
+
+		float squaredDistance = 0.0f;
+
+		if (sphereCenter.x < boundingBox.min.x) {
+			float dx = sphereCenter.x - boundingBox.min.x;
+			squaredDistance += dx * dx;
+		}
+		else if (sphereCenter.x > boundingBox.max.x) {
+			float dx = sphereCenter.x - boundingBox.max.x;
+			squaredDistance += dx * dx;
+		}
+
+		if (sphereCenter.y < boundingBox.min.y) {
+			float dy = sphereCenter.y - boundingBox.min.y;
+			squaredDistance += dy * dy;
+		}
+		else if (sphereCenter.y > boundingBox.max.y) {
+			float dy = sphereCenter.y - boundingBox.max.y;
+			squaredDistance += dy * dy;
+		}
+
+		if (sphereCenter.z < boundingBox.min.z) {
+			float dz = sphereCenter.z - boundingBox.min.z;
+			squaredDistance += dz * dz;
+		}
+		else if (sphereCenter.z > boundingBox.max.z) {
+			float dz = sphereCenter.z - boundingBox.max.z;
+			squaredDistance += dz * dz;
+		}
+
+		return squaredDistance <= (radius * radius);
+	}
+}
+
+void OctreeNode::subdivide()
 {
 
 	for (int i = 0; i < maxChildren; i++) {
@@ -71,7 +177,7 @@ void Octree::subdivide()
 		newBoundingBox.max.z = is4BitSet ? (zMin + zMax) / 2 : zMax;
 		newBoundingBox.min.z = is4BitSet ? (zMin + zMax) / 2 : zMin;
 
-		children[i] = std::make_unique<Octree>(newBoundingBox);
+		children[i] = std::make_unique<OctreeNode>(newBoundingBox);
 	}
 
 }
