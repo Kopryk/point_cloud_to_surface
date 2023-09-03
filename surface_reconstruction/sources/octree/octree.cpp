@@ -1,6 +1,7 @@
 #include "Octree.h"
 #include <iostream>
 
+
 void OctreeNode::insert(Point& point, uint32_t depth)
 {
 	if (isPointInsideBoundingBox(point) == false) {
@@ -71,9 +72,66 @@ std::vector<Point> OctreeNode::findNeigborsInRadius(Point p) {
 	if (maxIterations == 0) {
 		std::cout << __LINE__ << "findNeigborsInRadius ERROR: MAX_ITERATIONS!" << std::endl;
 	}
-	
+
 
 	return {};
+}
+
+inline Eigen::Vector3f OctreeNode::computeNormalForPoint(OctreeNode& octreeNode, Point p) {
+	auto neighbors = octreeNode.findNeigborsInRadius(p);
+
+	Eigen::Vector3f centroid(0, 0, 0);
+	for (auto& neighbor : neighbors) {
+		centroid += Eigen::Vector3f(neighbor.x, neighbor.y, neighbor.z);
+	}
+	centroid /= neighbors.size();
+
+	auto covariance = Eigen::Matrix3f::Zero();
+	for (auto& neighbor : neighbors) {
+		Eigen::Vector3f neighbor3f(neighbor.x, neighbor.y, neighbor.z);
+		Eigen::Vector3f diff = neighbor3f - centroid;
+		covariance += diff * diff.transpose();
+	}
+	covariance /= neighbors.size();
+
+	Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> solve(covariance);
+
+	// Principal Component Analysis(PCA)
+	// eigenvector of covariance matrix corresponding to its smallest eigenvalue is estimated normal vector.
+
+	Eigen::Vector3f normal = solve.eigenvectors().col(0);
+
+	return normal;
+}
+
+inline void OctreeNode::computeNormalForAllPoints(OctreeNode& octreeNode) {
+	if (octreeNode.isLeaf()) {
+		for (auto& point : octreeNode.points) {
+			// calculate normals and set to point
+			Eigen::Vector3f normal = computeNormalForPoint(octreeNode, point);
+			point.nx = normal.x();
+			point.ny = normal.y();
+			point.nz = normal.z();
+		}
+	}
+	else {
+		for (int i = 0; i < maxChildren; i++) {
+			if (octreeNode.children[i]) {
+				computeNormalForAllPoints(*octreeNode.children[i]);
+
+			}
+		}
+	}
+
+}
+
+inline bool OctreeNode::isLeaf() {
+	for (auto i = 0u; i < maxChildren; i++) {
+		if (children[i]) {
+			return false;
+		}
+	}
+	return true;
 }
 
 std::vector<Point> OctreeNode::queryRadius(Point p, float radius)

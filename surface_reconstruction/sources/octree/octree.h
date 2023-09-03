@@ -2,6 +2,10 @@
 #include <memory>
 #include <cmath>
 
+#include <Eigen/Dense>
+#include <Eigen/Eigenvalues>
+
+
 struct Point {
 	float x, y, z;
 	float nx, ny, nz;
@@ -25,16 +29,17 @@ public:
 	std::unique_ptr<OctreeNode> children[maxChildren] = { nullptr };
 	OctreeNode(BoundingBox boundingBox) : boundingBox(boundingBox) {}
 
-
 	void insert(Point& point, uint32_t depth = 0);
 	bool isPointInsideBoundingBox(Point& point);
 	std::vector<Point> queryRadius(Point p, float radius);
 	std::vector<Point> findNeigborsInRadius(Point p);
+	Eigen::Vector3f computeNormalForPoint(OctreeNode& octreeNode, Point p);
+	void computeNormalForAllPoints(OctreeNode& octreeNode);
 
-	
-
-
+private:
+	bool isLeaf();
+	void subdivide();
 	float distance(const Point& a, const Point& b);
 	bool intersectsSphere(const Point& sphereCenter, float radius);
-	void subdivide();
+
 };

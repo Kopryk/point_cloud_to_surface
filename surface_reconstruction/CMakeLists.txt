@@ -12,6 +12,9 @@ target_include_directories(surface_reconstruction PUBLIC "${CMAKE_CURRENT_SOURCE
 
 target_link_libraries(surface_reconstruction INTERFACE utils)
 
+set(EIGEN3_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/external/eigen)
+include_directories(${EIGEN3_INCLUDE_DIR})
+
 
 # Include OpenCL headers
 set(OpenCL_INCLUDE_DIR  ${CMAKE_SOURCE_DIR}/external/opencl-headers)
