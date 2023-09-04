@@ -9,6 +9,9 @@ else()
 	target_compile_definitions(${PROJECT_NAME} INTERFACE DEBUG=0)
 endif()
 
+set(EIGEN3_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/external/eigen)
+include_directories(${EIGEN3_INCLUDE_DIR})
+
 target_link_libraries(${PROJECT_NAME} renderer)
 target_link_libraries(${PROJECT_NAME} surface_reconstruction)
 

@@ -20,12 +20,101 @@
 #include "scalar_field/scalar_field.h"
 #include "divergence/divergence.h"
 #include "weighted_poisson_equation/weighted_poisson_equation.h"
+#include "octree/octree.h"
 
 
+bool isAlmostEqual(const Point& a, const Point& b, double epsilon) {
+	return std::fabs(a.x - b.x) < epsilon &&
+		std::fabs(a.y - b.y) < epsilon &&
+		std::fabs(a.z - b.z) < epsilon;
+}
+
+void removeDuplicates(std::vector<Point>& points, double epsilon) {
+	points.erase(std::unique(points.begin(), points.end(),
+		[epsilon](const Point& a, const Point& b) {
+			return isAlmostEqual(a, b, epsilon);
+		}),
+		points.end());
+}
+
+
+
+void main2() {
+
+	std::vector<Vertex4<float> >points;
+	auto nPoints = 50;
+
+	for (int i = 0; i < nPoints; ++i) {
+		float theta = 2.0f * 3.1415f * float(i) / float(nPoints);
+		for (int j = 0; j < nPoints; ++j) {
+			float phi = 3.1415f * float(j) / float(nPoints);
+			Vertex4<float> point(0, 0, 0, 0);
+			point.x = sin(phi) * cos(theta);
+			point.y = sin(phi) * sin(theta);
+			point.z = cos(phi);
+			points.push_back(point);
+		}
+	}
+
+	BoundingBox box{};
+	box.min.x = 0;
+	box.min.y = 0;
+	box.min.z = 0;
+	box.max.x = 1000;
+	box.max.y = 1000;
+	box.max.z = 1000;
+
+	std::cout << "Points size = " << points.size() << std::endl;
+
+	auto pointsClFloat3 = std::vector<cl_float3>(points.size());
+	for (auto i = 0u; i < pointsClFloat3.size(); i++) {
+		pointsClFloat3[i].x = points[i].x;
+		pointsClFloat3[i].y = points[i].y;
+		pointsClFloat3[i].z = points[i].z;
+		pointsClFloat3[i].w = points[i].w;
+	}
+
+	auto scaleHelper = SR::Scale(pointsClFloat3);
+	auto scalledPoints = scaleHelper.processOnGpu();
+
+
+	OctreeNode root{ box };
+	std::vector<Point> pointsToCheck{};
+
+	for (auto& point : scalledPoints.value()) {
+		Point p;
+		p.x = point.x;
+		p.y = point.y;
+		p.z = point.z;
+
+		pointsToCheck.push_back(p);
+
+	}
+	std::sort(pointsToCheck.begin(), pointsToCheck.end(), [](const Point& a, const Point& b)  {
+		if (a.x != b.x) return a.x < b.x;
+		if (a.y != b.y) return a.y < b.y;
+		return a.z < b.z;
+		});
+
+
+	removeDuplicates(pointsToCheck, 0.0001);
+
+
+	for (auto& point : pointsToCheck) {
+		root.insert(point, 0);
+	}
+
+
+	root.solvePoissonProblem(&root);
+
+
+}
 
 int main() {
 
+	main2();
 
+	return 0;
 	//std::vector<std::jthread> threads;
 	//std::mutex m{};
 	//for (int i = 0; i < 10; i++) {
@@ -142,7 +231,7 @@ int main() {
 	if (voxelsAverage.has_value()) {
 		std::cout << "correct voxels!" << std::endl;
 	}
-	
+
 
 
 
