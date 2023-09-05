@@ -1,6 +1,9 @@
 
 set(SURFACE_RECONSTRUCTION_SOURCES 
 	${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt
+	${CMAKE_CURRENT_SOURCE_DIR}/corner.h
+	${CMAKE_CURRENT_SOURCE_DIR}/corner_scalar_cache.h
+	${CMAKE_CURRENT_SOURCE_DIR}/corner_scalar_cache.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/index_octree.h
 	${CMAKE_CURRENT_SOURCE_DIR}/index_octree.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/octree.h

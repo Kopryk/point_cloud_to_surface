@@ -3,7 +3,10 @@
 #include "index_octree.h"
 #include <chrono>
 #include <thread>
-
+#include "corner.h"
+#include "corner_scalar_cache.h"
+#include "../marching_cubes_from_octree/triangle.h"
+#include "../marching_cubes_from_octree/marching_cubes_from_octree.h"
 
 void OctreeNode::insert(Point& point, uint32_t depth)
 {
@@ -187,9 +190,67 @@ void OctreeNode::solvePoissonProblem(OctreeNode* root) {
 
 	for (auto& [node, index] : allNodes) {
 		node->scalarValue = x(index);
+		node->containsScalarValue = true;
 		std::cout << "index= " << index << "scalar value = " << node->scalarValue << "\n";
 	}
 
+	// optional
+	// check if helps
+	// root->averageMissingLeafScalarValues(root);
+	// better option
+	int numberOfLeavesWithScalar = countLeafsWithScalar(root);
+	std::cout << "numberOfLeavesWithScalar = " << numberOfLeavesWithScalar << std::endl;
+	propagateScalarValues(root);
+	std::cout << "numberOfLeavesWithScalar = " << numberOfLeavesWithScalar << std::endl;
+
+	numberOfLeavesWithScalar = countLeafsWithScalar(root);
+
+	// calculate cache - not needed here but w/e
+	// remove later
+
+	CornerScalarCache cornerScalarCache{};
+
+
+	for (auto& [node, index] : allNodes) {
+
+		std::cout << "node = " << node << std::endl;
+		std::cout << "node scalar value = " << node->scalarValue << std::endl;
+
+		for (int i = static_cast<int>(Corner::BOTTOM_FRONT_LEFT);
+			i <= static_cast<int>(Corner::TOP_BACK_RIGHT);
+			i++) {
+
+			Corner currentCorner = static_cast<Corner>(i);
+
+			auto scalarValue = cornerScalarCache.getScalarValueForCorner(node, currentCorner);
+			std::cout << "corner i=" << i << " scalarValue = " << scalarValue << std::endl;
+		}
+	}
+
+	auto nSignChanges = countNodesWithSignChange(root, cornerScalarCache);
+	std::cout << nSignChanges << std::endl;
+
+	MarchingCubesFromOctree marchingCubesFromOctree{};
+
+	for (auto& [node, index] :  allNodes) {
+		if (node->isLeaf()) {
+			std::vector<Triangle> triangles = marchingCubesFromOctree.extractTrianglesForNode(node, cornerScalarCache);
+			std::cout << "triangle generated\n";
+			for (const auto& tri : triangles) {
+				std::cout << "Triangle:\n";
+
+				for (int i = 0; i < 3; i++) {
+					Vector3 vertex = tri.getVertex(i);
+					std::cout << "  Vertex " << i + 1 << ": ("
+						<< vertex.x << ", "
+						<< vertex.y << ", "
+						<< vertex.z << ")\n";
+				}
+
+				std::cout << "--------------------------------------\n";
+			}
+		}
+	}
 	std::cout << "SolvePoissonProblem passed!\n";
 }
 
@@ -310,7 +371,7 @@ bool OctreeNode::intersectsSphere(const Point& sphereCenter, double radius)
 
 }
 
-inline double OctreeNode::computeDivergence(OctreeNode* node, const Point& point) {
+double OctreeNode::computeDivergence(OctreeNode* node, const Point& point) {
 	auto neighbors = node->findNeigborsInRadius(point);
 
 	auto divergence = 0.0;
@@ -331,6 +392,124 @@ inline double OctreeNode::computeDivergence(OctreeNode* node, const Point& point
 	return divergence;
 }
 
+int OctreeNode::countLeafsWithScalar(OctreeNode* node) {
+	if (node == nullptr)
+	{
+		return 0;
+	}
+
+	if (node->isLeaf()) {
+		return node->containsScalarValue ? 1 : 0;
+	}
+
+	int count = 0;
+	for (auto& child : node->children) {
+		count += countLeafsWithScalar(child.get());
+	}
+
+	return count;
+}
+
+
+void OctreeNode::propagateScalarValues(OctreeNode* rootNode, int maxIterations) {
+	int iteration = 0;
+	while (iteration < maxIterations && fillLeafScalars(rootNode)) {
+		iteration++;
+	};
+}
+
+
+std::optional<double> OctreeNode::interpolateFromNeighbors(OctreeNode* node) {
+	int dx[] = { -1, 1, 0, 0, 0, 0 };
+	int dy[] = { 0, 0, -1, 1, 0, 0 };
+	int dz[] = { 0, 0, 0, 0, -1, 1 };
+
+	double sum = 0.0;
+	auto count = 0u;
+
+	for (int i = 0; i < 6; i++) {
+		OctreeNode* neighbor = node->getNeighborInDirection(dx[i], dy[i], dz[i]);
+		if (neighbor && neighbor->isLeaf() && neighbor->containsScalarValue) {
+			sum += neighbor->scalarValue;
+			count++;
+		}
+	}
+
+	if (count > 0) {
+		return sum / count;
+	}
+	else {
+		return std::nullopt;
+	}
+}
+
+
+bool OctreeNode::fillLeafScalars(OctreeNode* node) {
+	if (node == nullptr) {
+		return false;
+	}
+
+	bool updated = false;
+
+	if (node->isLeaf() && !node->containsScalarValue) {
+		std::optional<double> interpolatedValue = interpolateFromNeighbors(node);
+		if (interpolatedValue.has_value()) {
+			node->scalarValue = interpolatedValue.value();
+			node->containsScalarValue = true;
+			updated = true;
+
+			std::cout << "updatedd scalar value = " <<node->scalarValue << std::endl;
+		}
+	}
+	else {
+		for (auto& child : node->children) {
+			updated |= fillLeafScalars(child.get());
+		}
+	}
+
+	return updated;
+}
+
+
+
+void OctreeNode::setDirectionForCorner(Corner corner, int& dx, int& dy, int& dz) {
+	switch (corner) {
+	case Corner::BOTTOM_FRONT_LEFT:
+		dx = -1; dy = -1; dz = -1;
+		break;
+
+	case Corner::BOTTOM_FRONT_RIGHT:
+		dx = 1; dy = -1; dz = -1;
+		break;
+
+	case Corner::BOTTOM_BACK_LEFT:
+		dx = -1; dy = -1; dz = 1;
+		break;
+
+	case Corner::BOTTOM_BACK_RIGHT:
+		dx = 1; dy = -1; dz = 1;
+		break;
+
+	case Corner::TOP_FRONT_LEFT:
+		dx = -1; dy = 1; dz = -1;
+		break;
+
+	case Corner::TOP_FRONT_RIGHT:
+		dx = 1; dy = 1; dz = -1;
+		break;
+
+	case Corner::TOP_BACK_LEFT:
+		dx = -1; dy = 1; dz = 1;
+		break;
+
+	case Corner::TOP_BACK_RIGHT:
+		dx = 1; dy = 1; dz = 1;
+		break;
+	}
+}
+
+
+
 void OctreeNode::subdivide()
 {
 
@@ -344,9 +523,9 @@ void OctreeNode::subdivide()
 
 		BoundingBox newBoundingBox{};
 
-		bool is1BitSet = (i & 1);
-		bool is2BitSet = (i & 2) >> 1;  // You need to right-shift to consider the bit correctly
-		bool is4BitSet = (i & 4) >> 2;  // You need to right-shift to consider the bit correctly
+		bool is1BitSet = (i & 0b1);
+		bool is2BitSet = (i & 0b10) >> 1;
+		bool is4BitSet = (i & 0b100) >> 2;
 
 		newBoundingBox.min.x = is1BitSet ? (xMin + xMax) / 2 : xMin;
 		newBoundingBox.max.x = is1BitSet ? xMax : (xMin + xMax) / 2;
@@ -363,6 +542,7 @@ void OctreeNode::subdivide()
 		std::cout << std::endl;
 
 		children[i] = std::make_unique<OctreeNode>(newBoundingBox);
+		children[i]->parent = this;
 	}
 }
 
@@ -438,4 +618,209 @@ double OctreeNode::computeDivergenceForNode(OctreeNode* node, OctreeNode* root) 
 
 	// calculate average divergence
 	return totalDivergence / node->points.size();
+}
+
+
+bool OctreeNode::intersects(const BoundingBox& a, const BoundingBox& b) {
+	return (a.min.x <= b.max.x && a.max.x >= b.min.x) &&
+		(a.min.y <= b.max.y && a.max.y >= b.min.y) &&
+		(a.min.z <= b.max.z && a.max.z >= b.min.z);
+}
+
+BoundingBox OctreeNode::shiftedBoundingBox(const BoundingBox& box, int dx, int dy, int dz) {
+	BoundingBox shiftedBox = box;
+
+	shiftedBox.min.x += dx;
+	shiftedBox.min.y += dy;
+	shiftedBox.min.z += dz;
+
+	shiftedBox.max.x += dx;
+	shiftedBox.max.y += dy;
+	shiftedBox.max.z += dz;
+
+	return shiftedBox;
+}
+
+OctreeNode* OctreeNode::getNeighborInDirection(int dx, int dy, int dz) {
+	BoundingBox shiftedBox = shiftedBoundingBox(this->boundingBox, dx, dy, dz);
+
+
+	if (parent) {
+		for (auto& sameLevelNodes : parent->children) {
+			if (sameLevelNodes.get() != this && intersects(shiftedBox, sameLevelNodes->boundingBox)) {
+				if (sameLevelNodes->isLeaf())
+				{
+					return sameLevelNodes.get();
+				}
+			}
+		}
+	}
+
+	// go to parent and repeat
+	if (parent) {
+		return parent->getNeighborInDirection(dx, dy, dz);
+	}
+
+	// no neighbor in the  direction
+	return nullptr;
+}
+
+
+double OctreeNode::getCornerValue(OctreeNode* node, Corner corner) {
+
+	double sum = node->scalarValue;
+	auto count = 1u;
+
+	int dx = 0, dy = 0, dz = 0;
+	setDirectionForCorner(corner, dx, dy, dz);
+
+
+	OctreeNode* dxNeighbor = node->getNeighborInDirection(dx, 0, 0);
+	if (dxNeighbor && dxNeighbor->containsScalarValue) {
+		sum += dxNeighbor->scalarValue;
+		count++;
+	}
+
+	OctreeNode* dyNeighbor = node->getNeighborInDirection(0, dy, 0);
+	if (dyNeighbor && dyNeighbor->containsScalarValue) {
+		sum += dyNeighbor->scalarValue;
+		count++;
+	}
+
+	OctreeNode* dzNeighbor = node->getNeighborInDirection(0, 0, dz);
+	if (dzNeighbor && dzNeighbor->containsScalarValue) {
+		sum += dzNeighbor->scalarValue;
+		count++;
+	}
+
+
+	OctreeNode* dxyNeighbor = node->getNeighborInDirection(dx, dy, 0);
+	if (dxyNeighbor && dxyNeighbor->containsScalarValue) {
+		sum += dxyNeighbor->scalarValue;
+		count++;
+	}
+
+	OctreeNode* dxzNeighbor = node->getNeighborInDirection(dx, 0, dz);
+	if (dxzNeighbor && dxzNeighbor->containsScalarValue) {
+		sum += dxzNeighbor->scalarValue;
+		count++;
+	}
+
+	OctreeNode* dyzNeighbor = node->getNeighborInDirection(0, dy, dz);
+	if (dyzNeighbor && dyzNeighbor->containsScalarValue) {
+		sum += dyzNeighbor->scalarValue;
+		count++;
+	}
+
+	return sum / count;
+}
+
+void OctreeNode::averageMissingLeafScalarValues(OctreeNode* node) {
+
+	if (node == nullptr || node->isLeaf())
+	{
+		return;
+	}
+
+	double sum = 0.0;
+	int countWithScalars = 0;
+
+
+	for (auto& child : node->children) {
+		if (child && child->isLeaf() && child->containsScalarValue) {
+			sum += child->scalarValue;
+			countWithScalars++;
+		}
+	}
+
+
+	if (countWithScalars == 0) {
+		for (auto& child : node->children) {
+			averageMissingLeafScalarValues(child.get());
+		}
+		return;
+	}
+
+	double average = sum / countWithScalars;
+
+
+	for (auto& child : node->children) {
+		if (child && child->isLeaf() && !child->containsScalarValue) {
+			child->scalarValue = average;
+			child->containsScalarValue = true;
+
+		}
+		else if (!child->isLeaf()) {
+
+			averageMissingLeafScalarValues(child.get());
+		}
+	}
+}
+
+int OctreeNode::countNodesWithSignChange(OctreeNode* root, CornerScalarCache& cornerScalarCache) {
+	if (!root) return 0;
+
+	int count = 0;
+
+	if (root->isLeaf()) {
+		bool hasPositive = false;
+		bool hasNegative = false;
+
+		for (int i = 0; i < 8; i++) {
+			Corner corner = static_cast<Corner>(i);
+			auto scalarOpt = cornerScalarCache.getScalarValueForCorner(root, corner);
+			if (scalarOpt > 0) hasPositive = true;
+			if (scalarOpt < 0) hasNegative = true;
+
+			if (hasPositive && hasNegative) {
+				count++;
+				break;
+			}
+
+		}
+	}
+	else {
+
+		for (auto& child : root->children) {
+			count += countNodesWithSignChange(child.get(), cornerScalarCache);
+		}
+	}
+
+	return count;
+}
+
+Vector3 OctreeNode::getCornerPosition(Corner corner) const {
+	Vector3 cornerPos;
+
+	switch (corner) {
+	case Corner::BOTTOM_FRONT_LEFT:
+		cornerPos = Vector3(boundingBox.min.x, boundingBox.min.y, boundingBox.min.z);
+		break;
+	case Corner::BOTTOM_FRONT_RIGHT:
+		cornerPos = Vector3(boundingBox.max.x, boundingBox.min.y, boundingBox.min.z);
+		break;
+	case Corner::BOTTOM_BACK_RIGHT:
+		cornerPos = Vector3(boundingBox.max.x, boundingBox.min.y, boundingBox.max.z);
+		break;
+	case Corner::BOTTOM_BACK_LEFT:
+		cornerPos = Vector3(boundingBox.min.x, boundingBox.min.y, boundingBox.max.z);
+		break;
+	case Corner::TOP_FRONT_LEFT:
+		cornerPos = Vector3(boundingBox.min.x, boundingBox.max.y, boundingBox.min.z);
+		break;
+	case Corner::TOP_FRONT_RIGHT:
+		cornerPos = Vector3(boundingBox.max.x, boundingBox.max.y, boundingBox.min.z);
+		break;
+	case Corner::TOP_BACK_RIGHT:
+		cornerPos = Vector3(boundingBox.max.x, boundingBox.max.y, boundingBox.max.z);
+		break;
+	case Corner::TOP_BACK_LEFT:
+		cornerPos = Vector3(boundingBox.min.x, boundingBox.max.y, boundingBox.max.z);
+		break;
+	default:
+
+		break;
+	}
+
+	return cornerPos;
 }

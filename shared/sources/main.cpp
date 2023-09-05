@@ -21,7 +21,7 @@
 #include "divergence/divergence.h"
 #include "weighted_poisson_equation/weighted_poisson_equation.h"
 #include "octree/octree.h"
-
+#include "octree/corner_scalar_cache.h"
 
 bool isAlmostEqual(const Point& a, const Point& b, double epsilon) {
 	return std::fabs(a.x - b.x) < epsilon &&
@@ -106,7 +106,6 @@ void main2() {
 
 
 	root.solvePoissonProblem(&root);
-
 
 }
 
