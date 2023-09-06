@@ -27,7 +27,7 @@ class Triangle {
 
 public:
 
-	Triangle() {}
+	Triangle() = default;
 
 	Triangle(const Vector3& v1, const Vector3& v2, const Vector3& v3) {
 		vertices[0] = v1;

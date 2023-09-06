@@ -10,7 +10,7 @@ class VertexBufferLayout
 {
 public:
 
-	VertexBufferLayout(size_t startingIndex = 0) : startingIndex(startingIndex){}
+	VertexBufferLayout(size_t startingIndex = 0) : startingIndex(startingIndex) {}
 
 	~VertexBufferLayout() = default;
 	VertexBufferLayout(const VertexBufferLayout&) = delete;
@@ -65,7 +65,16 @@ void VertexBufferLayout::addElement()
 
 	}
 
-	m_elements.emplace_back(VertexElementGL{ index, count, GL_FLOAT, true, stride, m_offset,static_cast<size_t>(sizeInBytes) });
+	VertexElementGL element{};
+	element.index = index;
+	element.count = count;
+	element.type = GL_FLOAT;
+	element.isNormalized = false;
+	element.stride = stride;
+	element.offset = m_offset;
+	element.sizeInBytes = static_cast<size_t>(sizeInBytes);
+
+	m_elements.push_back(element);
 	m_offset += count * sizeof(float);
 }
 

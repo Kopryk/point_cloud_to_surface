@@ -29,9 +29,16 @@ public:
 
 	void init(std::vector<Vertex4<float>>& points);
 	void init(std::vector<Vertex4<float>>& points, std::vector<Vertex4<float>>& normals);
+	void initWithTriangles(std::vector<Vertex4<float>>& triangleVerticles);
+	void initWithTrianglesWithPoints(std::vector<Vertex4<float>>& triangleVerticles, std::vector<Vertex4<float>>& points);
+	
+
+
 	void mainLoop();
 	std::vector<Vertex4<float>> points; // TODO it should be removed
 	std::vector<Vertex4<float>> normals; // TODO it should be removed
+	std::vector<Vertex4<float>> triangleVerticles; // TODO it should be removed
+
 
 private:
 	GraphicsApplication() = default;
@@ -40,6 +47,10 @@ private:
 	Camera* m_camera = nullptr;
 	void createMeshes(Camera* camera);
 	void createMeshes2(Camera* camera);
+	void createMeshesTriangle(Camera* camera);
+	void createMeshesTriangleWithPoints(Camera* camera);
+
+	
 
 
 	uint32_t m_activeMesh = 1;

@@ -28,11 +28,11 @@ class IndexOctreeHelper;
 class OctreeNode {
 public:
 	inline static double radius = 1.0f;
-	static constexpr uint32_t maxPoints = 10;
-	static constexpr uint32_t maxDepth = 6;
+	static constexpr uint32_t maxPoints = 6;
+	static constexpr uint32_t maxDepth = 9;
 	static constexpr uint32_t maxChildren = 8;
-	static constexpr uint32_t minNeighbors = 6;
-	static constexpr uint32_t maxNeighbors = 10;
+	static constexpr uint32_t minNeighbors = 3;
+	static constexpr uint32_t maxNeighbors = 15;
 	inline static uint32_t nAllPoints = 0u;
 
 	std::unique_ptr<OctreeNode> children[maxChildren] = { nullptr };
@@ -63,7 +63,7 @@ public:
 	void insert(Point& point, uint32_t depth = 0);
 	void setDirectionForCorner(Corner corner, int& dx, int& dy, int& dz);
 	void setupPoissonSystem(OctreeNode* root, Eigen::SparseMatrix<double>& A, Eigen::VectorXd& b, IndexOctreeHelper& indexer);
-	void solvePoissonProblem(OctreeNode* root);
+	std::vector<Triangle> solvePoissonProblem(OctreeNode* root);
 	void averageMissingLeafScalarValues(OctreeNode* node);
 	std::optional<double> interpolateFromNeighbors(OctreeNode* node);;
 	bool fillLeafScalars(OctreeNode* node);

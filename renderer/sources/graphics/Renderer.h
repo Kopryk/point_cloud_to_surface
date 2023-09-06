@@ -13,6 +13,7 @@ public:
     Renderer& operator=(const Renderer&) = delete;
     Renderer& operator=(Renderer&&) = delete;
 
+    void drawTriangles(VertexArray& vertexArray, Shader& shader) const;
     void drawPoints(VertexArray& vertexArray, Shader& shader) const;
     void drawLines(VertexArray& vertexArray, Shader& shader) const;
 

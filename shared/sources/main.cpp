@@ -14,6 +14,10 @@
 #include <execution>
 #include <random>
 #include "scale/scale.h"
+#include <vector>
+#include <algorithm>
+#include <limits>
+
 #include "voxelization/voxelization.h"
 #include "voxelization_with_average/voxelization_with_average.h"
 
@@ -22,6 +26,8 @@
 #include "weighted_poisson_equation/weighted_poisson_equation.h"
 #include "octree/octree.h"
 #include "octree/corner_scalar_cache.h"
+#include "marching_cubes_from_octree/triangle.h"
+
 
 bool isAlmostEqual(const Point& a, const Point& b, double epsilon) {
 	return std::fabs(a.x - b.x) < epsilon &&
@@ -37,9 +43,36 @@ void removeDuplicates(std::vector<Point>& points, double epsilon) {
 		points.end());
 }
 
+void normalizeVertices(std::vector<Vertex4<float>>& vertices) {
+	float minX = std::numeric_limits<float>::max();
+	float minY = minX;
+	float minZ = minX;
+
+	float maxX = std::numeric_limits<float>::lowest();
+	float maxY = maxX;
+	float maxZ = maxX;
+
+	// Step 1: Determine min and max values for each component
+	for (const auto& vertex : vertices) {
+		minX = std::min(minX, vertex.x);
+		minY = std::min(minY, vertex.y);
+		minZ = std::min(minZ, vertex.z);
+
+		maxX = std::max(maxX, vertex.x);
+		maxY = std::max(maxY, vertex.y);
+		maxZ = std::max(maxZ, vertex.z);
+	}
+
+	// Step 2: Normalize the data using the min and max values
+	for (auto& vertex : vertices) {
+		vertex.x = (vertex.x - minX) / (maxX - minX);
+		vertex.y = (vertex.y - minY) / (maxY - minY);
+		vertex.z = (vertex.z - minZ) / (maxZ - minZ);
+	}
+}
 
 
-void main2() {
+void demo_sphere() {
 
 	std::vector<Vertex4<float> >points;
 	auto nPoints = 50;
@@ -90,7 +123,7 @@ void main2() {
 		pointsToCheck.push_back(p);
 
 	}
-	std::sort(pointsToCheck.begin(), pointsToCheck.end(), [](const Point& a, const Point& b)  {
+	std::sort(pointsToCheck.begin(), pointsToCheck.end(), [](const Point& a, const Point& b) {
 		if (a.x != b.x) return a.x < b.x;
 		if (a.y != b.y) return a.y < b.y;
 		return a.z < b.z;
@@ -105,13 +138,38 @@ void main2() {
 	}
 
 
-	root.solvePoissonProblem(&root);
+	auto result = root.solvePoissonProblem(&root);
+
+
+	std::vector<Vertex4<float> > triangleVerticles;
+	for (auto i = 0u; i < result.size(); i++) {
+
+		for (int j = 0; j < 3; j++) {
+			Vertex4<float> point(0, 0, 0, 0);
+			point.x = result[i].getVertex(j).x;
+			point.y = result[i].getVertex(j).y;
+			point.z = result[i].getVertex(j).z;
+			point.w = 1;
+			triangleVerticles.push_back(point);
+		}
+	}
+
+
+	normalizeVertices(triangleVerticles);
+	normalizeVertices(points);
+
+	auto& ga = GraphicsApplication::get();
+
+	ga.initWithTrianglesWithPoints(triangleVerticles, points);
+
+
+	ga.mainLoop();
 
 }
 
 int main() {
 
-	main2();
+	demo_sphere();
 
 	return 0;
 	//std::vector<std::jthread> threads;

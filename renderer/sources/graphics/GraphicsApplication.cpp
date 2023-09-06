@@ -7,6 +7,7 @@
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
+#include "mesh/MeshTriangles.h"
 
 #include <iostream>
 
@@ -45,6 +46,32 @@ void GraphicsApplication::init(std::vector<Vertex4<float>>& points, std::vector<
 	m_activeMesh = 2;
 	createMeshes2(m_camera);
 }
+
+void GraphicsApplication::initWithTriangles(std::vector<Vertex4<float>>& triangleVerticles)
+{
+	this->triangleVerticles = triangleVerticles;
+	m_display = &Display::get();
+	m_display->init();
+	m_camera = &Camera::get();
+	m_camera->init(m_display->getWidth(), m_display->getHeight());
+
+	m_activeMesh = 1;
+	createMeshesTriangle(m_camera);
+}
+
+void GraphicsApplication::initWithTrianglesWithPoints(std::vector<Vertex4<float>>& triangleVerticles, std::vector<Vertex4<float>>& points)
+{
+	this->triangleVerticles = triangleVerticles;
+	this->points = points;
+	m_display = &Display::get();
+	m_display->init();
+	m_camera = &Camera::get();
+	m_camera->init(m_display->getWidth(), m_display->getHeight());
+
+	m_activeMesh = 2;
+	createMeshesTriangleWithPoints(m_camera);
+}
+
 
 void ShowDockSpace(bool* p_open)
 {
@@ -217,7 +244,7 @@ void GraphicsApplication::mainLoop()
 				static float pointSize = 1.0f;
 				ImGui::SliderFloat("pointSize", &pointSize, 1.0f, 10.0f);
 				glPointSize(pointSize);
-				glLineWidth(pointSize);
+				//glLineWidth(pointSize);
 				ImGui::EndChild();
 			}
 			ImGui::End();
@@ -265,6 +292,31 @@ void GraphicsApplication::createMeshes2(Camera* camera)
 	// points cloud
 	m_meshes.emplace_back(new MeshPoints(points, "points cloud"));
 	m_meshes.emplace_back(new MeshLines(points, normals, "points cloud"));
+
+
+	for (auto& mesh : m_meshes)
+	{
+		mesh->init(camera);
+	}
+}
+
+void GraphicsApplication::createMeshesTriangle(Camera* camera)
+{
+	// points cloud
+	m_meshes.emplace_back(new MeshTriangles(triangleVerticles, "points cloud"));
+
+
+	for (auto& mesh : m_meshes)
+	{
+		mesh->init(camera);
+	}
+}
+
+void GraphicsApplication::createMeshesTriangleWithPoints(Camera* camera)
+{
+	// points cloud
+	m_meshes.emplace_back(new MeshPoints(points, "points cloud"));
+	m_meshes.emplace_back(new MeshTriangles(triangleVerticles, "points cloud"));
 
 
 	for (auto& mesh : m_meshes)

@@ -152,7 +152,7 @@ uint32_t OctreeNode::getNumberOfNodesInOctree()
 	return nAllPoints;
 }
 
-void OctreeNode::solvePoissonProblem(OctreeNode* root) {
+std::vector<Triangle> OctreeNode::solvePoissonProblem(OctreeNode* root) {
 
 
 	computeNormalForAllPoints(*root, root);
@@ -165,13 +165,13 @@ void OctreeNode::solvePoissonProblem(OctreeNode* root) {
 
 	Eigen::ConjugateGradient<Eigen::SparseMatrix<double>, Eigen::Lower | Eigen::Upper> solver;
 	solver.setMaxIterations(1000);
-	solver.setTolerance(0.1);
+	solver.setTolerance(0.1); // fixme
 
 	solver.compute(A);
 
 	if (solver.info() != Eigen::Success) {
 		std::cout << __LINE__ << "compute failed\n";
-		return;
+		return {};
 	}
 
 
@@ -183,8 +183,8 @@ void OctreeNode::solvePoissonProblem(OctreeNode* root) {
 
 	if (solver.info() != Eigen::Success) {
 		std::cout << __LINE__ << "solve failed error: " << solver.info() << std::endl;
-		return;
-	}
+		return {};
+	 }
 
 	auto allNodes = indexer.getAllNodesMap();
 
@@ -232,11 +232,18 @@ void OctreeNode::solvePoissonProblem(OctreeNode* root) {
 
 	MarchingCubesFromOctree marchingCubesFromOctree{};
 
+
+	std::vector<Triangle> result{};
+
+
 	for (auto& [node, index] :  allNodes) {
 		if (node->isLeaf()) {
 			std::vector<Triangle> triangles = marchingCubesFromOctree.extractTrianglesForNode(node, cornerScalarCache);
-			std::cout << "triangle generated\n";
 			for (const auto& tri : triangles) {
+
+				// todo fix me
+				result.push_back(tri);
+
 				std::cout << "Triangle:\n";
 
 				for (int i = 0; i < 3; i++) {
@@ -252,6 +259,8 @@ void OctreeNode::solvePoissonProblem(OctreeNode* root) {
 		}
 	}
 	std::cout << "SolvePoissonProblem passed!\n";
+
+	return result;
 }
 
 
