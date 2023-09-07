@@ -18,7 +18,7 @@ std::vector < Vertex4<float>> PointCloudLibrary::calculateSurface(std::vector<Po
 
 
 	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
-	generateFlatSurfacePointCloud(cloud, 10, 5, 1000);
+	//generateFlatSurfacePointCloud(cloud, 10, 5, 1000);
 
 	/*cloud->points.resize(points.size());
 	for (int i = 0; i < points.size(); i++) {
@@ -27,17 +27,17 @@ std::vector < Vertex4<float>> PointCloudLibrary::calculateSurface(std::vector<Po
 		cloud->points[i].z = points[i].z;
 
 	}*/
-	//for (const auto& vertex : points) {
-	//	pcl::PointXYZ point;
-	//	point.x = vertex.x;
-	//	point.y = vertex.y;
-	//	point.z = vertex.z;
-	//	cloud->points.push_back(point);
-	//}/*
+	for (const auto& vertex : points) {
+		pcl::PointXYZ point;
+		point.x = vertex.x;
+		point.y = vertex.y;
+		point.z = vertex.z;
+		cloud->points.push_back(point);
+	}
 
-	/*cloud->width = cloud->points.size();
+	cloud->width = cloud->points.size();
 	cloud->height = 1;
-	cloud->is_dense = false;*/
+	cloud->is_dense = false;
 
 	tree->setInputCloud(cloud);
 	n.setInputCloud(cloud);
