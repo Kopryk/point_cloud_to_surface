@@ -27,6 +27,7 @@
 #include "octree/octree.h"
 #include "octree/corner_scalar_cache.h"
 #include "marching_cubes_from_octree/triangle.h"
+#include "point_cloud_library/point_cloud_library.h"
 
 
 bool isAlmostEqual(const Point& a, const Point& b, double epsilon) {
@@ -71,6 +72,87 @@ void normalizeVertices(std::vector<Vertex4<float>>& vertices) {
 	}
 }
 
+
+void demo_pcl() {
+	std::vector<Vertex4<float> >points;
+	auto nPoints = 50;
+
+	for (int i = 0; i < nPoints; ++i) {
+		float theta = 2.0f * 3.1415f * float(i) / float(nPoints);
+		for (int j = 0; j < nPoints; ++j) {
+			float phi = 3.1415f * float(j) / float(nPoints);
+			Vertex4<float> point(0, 0, 0, 0);
+			point.x = sin(phi) * cos(theta);
+			point.y = sin(phi) * sin(theta);
+			point.z = cos(phi);
+			points.push_back(point);
+		}
+	}
+
+	BoundingBox box{};
+	box.min.x = 0;
+	box.min.y = 0;
+	box.min.z = 0;
+	box.max.x = 1000;
+	box.max.y = 1000;
+	box.max.z = 1000;
+
+	std::cout << "Points size = " << points.size() << std::endl;
+
+	auto pointsClFloat3 = std::vector<cl_float3>(points.size());
+	for (auto i = 0u; i < pointsClFloat3.size(); i++) {
+		pointsClFloat3[i].x = points[i].x;
+		pointsClFloat3[i].y = points[i].y;
+		pointsClFloat3[i].z = points[i].z;
+		pointsClFloat3[i].w = points[i].w;
+	}
+
+	auto scaleHelper = SR::Scale(pointsClFloat3);
+	auto scalledPoints = scaleHelper.processOnGpu();
+
+
+	std::vector<Point> pointsToCheck{};
+
+	for (auto& point : pointsClFloat3) {
+		Point p;
+		p.x = point.x;
+		p.y = point.y;
+		p.z = point.z;
+
+		pointsToCheck.push_back(p);
+
+	}
+
+
+
+
+	std::sort(pointsToCheck.begin(), pointsToCheck.end(), [](const Point& a, const Point& b) {
+		if (a.x != b.x) return a.x < b.x;
+		if (a.y != b.y) return a.y < b.y;
+		return a.z < b.z;
+		});
+
+
+	removeDuplicates(pointsToCheck, 0.0001);
+
+
+	PointCloudLibrary pcl;
+	auto verticles = pcl.calculateSurface(pointsToCheck);
+
+	auto& ga = GraphicsApplication::get();
+
+
+	std::cout << "Points\n";
+	for (int i = 0; i < 10; i++) {
+		auto vertex = points[i];
+		std::cout << " x = " << vertex.x << "  ,";
+		std::cout << " y = " << vertex.y << "  ,";
+		std::cout << " z = " << vertex.z << "\n\n";
+	}
+
+	ga.initWithTrianglesWithPoints(verticles, points);
+	ga.mainLoop();
+}
 
 void demo_sphere() {
 
@@ -169,7 +251,7 @@ void demo_sphere() {
 
 int main() {
 
-	demo_sphere();
+	demo_pcl();
 
 	return 0;
 	//std::vector<std::jthread> threads;

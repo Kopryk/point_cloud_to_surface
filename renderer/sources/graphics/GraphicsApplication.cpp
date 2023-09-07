@@ -68,7 +68,7 @@ void GraphicsApplication::initWithTrianglesWithPoints(std::vector<Vertex4<float>
 	m_camera = &Camera::get();
 	m_camera->init(m_display->getWidth(), m_display->getHeight());
 
-	m_activeMesh = 2;
+	m_activeMesh = 1;
 	createMeshesTriangleWithPoints(m_camera);
 }
 
@@ -315,7 +315,7 @@ void GraphicsApplication::createMeshesTriangle(Camera* camera)
 void GraphicsApplication::createMeshesTriangleWithPoints(Camera* camera)
 {
 	// points cloud
-	m_meshes.emplace_back(new MeshPoints(points, "points cloud"));
+	//m_meshes.emplace_back(new MeshPoints(points, "points cloud"));
 	m_meshes.emplace_back(new MeshTriangles(triangleVerticles, "points cloud"));
 
 

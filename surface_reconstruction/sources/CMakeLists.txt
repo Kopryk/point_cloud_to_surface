@@ -13,6 +13,8 @@ add_subdirectory(normal_estimation)
 add_subdirectory(voxelization)
 add_subdirectory(voxelization_with_average)
 add_subdirectory(marching_cubes_from_octree)
+add_subdirectory(point_cloud_library)
+
 
 set(SURFACE_RECONSTRUCTION_SOURCES 
 	${SURFACE_RECONSTRUCTION_SOURCES}

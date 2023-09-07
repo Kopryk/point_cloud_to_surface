@@ -11,11 +11,8 @@
 
 #include "corner.h"
 #include "../marching_cubes_from_octree/triangle.h"
+#include "point.h"
 
-struct Point {
-	double x, y, z;
-	double nx, ny, nz;
-};
 
 struct BoundingBox {
 	Point min{};

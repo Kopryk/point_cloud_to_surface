@@ -15,6 +15,10 @@ target_link_libraries(surface_reconstruction INTERFACE utils)
 set(EIGEN3_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/external/eigen)
 include_directories(${EIGEN3_INCLUDE_DIR})
 
+# point cloud library
+#find_package(PCL CONFIG REQUIRED)
+#target_link_libraries(main PRIVATE ${PCL_LIBRARIES})
+# installed via vcpkg
 
 # Include OpenCL headers
 set(OpenCL_INCLUDE_DIR  ${CMAKE_SOURCE_DIR}/external/opencl-headers)
