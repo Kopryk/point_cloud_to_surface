@@ -12,6 +12,12 @@
 #include <vector>
 #include "../../utils/sources/utils.h"
 
+
+struct Float3 {
+    float x, y, z;
+};
+
+
 class PointCloudLibrary {
 public:
 	PointCloudLibrary() = default;

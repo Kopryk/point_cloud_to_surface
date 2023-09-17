@@ -42,6 +42,11 @@ void Camera::onResize(int width, int height)
     m_height = height;
 }
 
+void Camera::lookAtPoint(float x, float y, float z)
+{
+
+}
+
 glm::vec3 Camera::getCameraFront() const
 {
     glm::vec3 front;

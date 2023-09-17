@@ -54,11 +54,11 @@ void MeshTriangles::initMvp()
 {
 	m_model = glm::mat4(1.0f);
 	m_mvp = glm::mat4(1.0f);
-	m_color = glm::vec4(1.f, 0.f, 0.0f, 1.f);
+	m_color = glm::vec4(0.0f, 1.f, 0.0f, 0.5f);
 
-	//m_model = glm::rotate(m_model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-	//m_model = glm::translate(m_model, glm::vec3(-1.0f, 0.0f, 0.0f));
-	m_model = glm::scale(m_model, glm::vec3(10.0f));
+	m_model = glm::rotate(m_model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+	m_model = glm::translate(m_model, glm::vec3(-1.0f, 0.0f, 0.0f));
+	m_model = glm::scale(m_model, glm::vec3(1.f));
 
 
 	m_mvp = m_camera->getViewProjection() * m_model;

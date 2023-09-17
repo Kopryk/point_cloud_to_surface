@@ -51,6 +51,8 @@ public:
     void updatePitch(float pitchChange) { m_pitch += pitchChange; }
     void updateYaw(float yawChange) { m_yaw += yawChange; }
 
+    void lookAtPoint(float x, float y, float z);
+
 private:
 
     glm::mat4 m_view = glm::mat4(1.0f);
