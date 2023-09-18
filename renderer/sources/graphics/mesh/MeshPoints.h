@@ -14,6 +14,8 @@ public:
 	MeshPoints& operator=(MeshPoints&&) = delete;
 
 	void draw() override;
+	virtual bool isPoint() override { return true; }
+
 
 private:
 	void updateUniforms() override;

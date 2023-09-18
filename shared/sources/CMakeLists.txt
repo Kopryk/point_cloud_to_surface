@@ -21,3 +21,11 @@ add_custom_command(
         ${CMAKE_SOURCE_DIR}/external/glew-2.2.0/bin/Release/x64/glew32.dll 
         $<TARGET_FILE_DIR:${PROJECT_NAME}>
 )
+
+#  Native File Dialog
+
+set(NFD_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/nativefiledialog_build)
+
+add_subdirectory(${CMAKE_SOURCE_DIR}/external/nativefiledialog ${NFD_BINARY_DIR})
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/external/nativefiledialog/src/include)
+target_link_libraries(${PROJECT_NAME} nfd)

@@ -6,13 +6,30 @@
 #include <pcl/surface/gp3.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/io/vtk_io.h>
-#include <pcl/io/ply_io.h> // For PLY
+#include <pcl/io/ply_io.h> 
 
-std::vector < Vertex4<float>> PointCloudLibrary::calculateSurface(std::vector<Point>& points)
+#include "../../external/nativefiledialog/src/include/nfd.h"
+
+std::vector <Vertex4<float>> PointCloudLibrary::calculateSurface(std::vector < Vertex4<float>>& points)
 {
+	nfdchar_t* outPath = NULL;
+	nfdresult_t result = NFD_OpenDialog(NULL, NULL, &outPath);
+	std::string pathPoints;
 
+	if (result == NFD_OKAY) {
+		printf("Success!\nPath: %s\n", outPath);
+		pathPoints = outPath;
+		free(outPath);
+	}
+	else if (result == NFD_CANCEL) {
+		printf("User pressed cancel.\n");
+	}
+	else {
+		printf("Error: %s\n", NFD_GetError());
+	}
 
-
+	// Create a point cloud object
+	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
 
 	// Normal estimation
 	pcl::NormalEstimation<pcl::PointXYZ, pcl::Normal> n;
@@ -20,32 +37,20 @@ std::vector < Vertex4<float>> PointCloudLibrary::calculateSurface(std::vector<Po
 	pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZ>());
 
 
-
-	// Create a point cloud object
-	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
-
-	//// Load the PCD file into the point cloud object
-	//
-	//if (pcl::io::loadPCDFile<pcl::PointXYZ>(fileWithPointCloud, *cloud) == -1) {
-	//	std::cerr << "Error reading point cloud " << fileWithPointCloud << std::endl;
-	//	return {};
-	//}
-
-
-	std::string fileWithPointCloud = R"(C:/Users/s1560/Documents/buildings_77222_1307381_6.221.25.24.2.laz.segmented.xyz)";
-	std::ifstream file(fileWithPointCloud);
+	std::ifstream file(pathPoints);
 	if (!file.is_open()) {
-		std::cerr << "Error opening file " << fileWithPointCloud << std::endl;
+		std::cerr << "Error opening file " << pathPoints << std::endl;
 	}
 
 	int numberOfPoints;
 	file >> numberOfPoints;
 
 	std::vector<Float3> points2;
+	points.reserve(numberOfPoints);
 	points2.reserve(numberOfPoints);
 
 	std::string line;
-	std::getline(file, line);  // Consume the newline character after reading numberOfPoints
+	std::getline(file, line);  // consume newline after reading numberOfPoints
 
 
 	float minX = std::numeric_limits<float>::max();
@@ -81,30 +86,20 @@ std::vector < Vertex4<float>> PointCloudLibrary::calculateSurface(std::vector<Po
 	}
 
 
-
-	//generateFlatSurfacePointCloud(cloud, 10, 5, 1000);
-
 	cloud->points.resize(points2.size());
 	for (int i = 0; i < points2.size(); i++) {
 		cloud->points[i].x = points2[i].x;
 		cloud->points[i].y = points2[i].y;
 		cloud->points[i].z = points2[i].z;
+		
 
+		Vertex4<float> p(points2[i].x, points2[i].y, points2[i].z, 1.0f);
+		points.push_back(p);
 	}
-
-	//for (const auto& vertex : points) {
-	//	pcl::PointXYZ point;
-	//	point.x = vertex.x;
-	//	point.y = vertex.y;
-	//	point.z = vertex.z;
-	//	cloud->points.push_back(point);
-	//}
 
 	cloud->width = cloud->points.size();
 	cloud->height = 1;
 	cloud->is_dense = false;
-
-
 
 	pcl::PointCloud<pcl::PointXYZ>::Ptr cloudFiltered(new pcl::PointCloud<pcl::PointXYZ>);
 
@@ -112,7 +107,7 @@ std::vector < Vertex4<float>> PointCloudLibrary::calculateSurface(std::vector<Po
 	// Create the filtering object
 	pcl::VoxelGrid<pcl::PointXYZ> sor;
 	sor.setInputCloud(cloud);
-	sor.setLeafSize(0.5, 0.5, 0.5);  // This defines the resolution of the voxel grid, adjust as needed
+	sor.setLeafSize(0.5, 0.5, 0.5);  // resolution of the voxel grid
 	sor.filter(*cloudFiltered);
 
 
@@ -155,18 +150,10 @@ std::vector < Vertex4<float>> PointCloudLibrary::calculateSurface(std::vector<Po
 	pcl::fromPCLPointCloud2(triangles.cloud, cloud2);
 
 
-	//pcl::saveVTKFile("mesh.vtk", triangles);
-
-	//std::cout << " triangles.cloud.width = " << triangles.cloud.width << std::endl;
 
 	std::vector<Vertex4<float>> vertices;
 
-	int i = 0;
-
-	std::cout << "test0"<<std::endl;
-
 	for (const auto& triangle : triangles.polygons) {
-		std::cout << "test0" << std::endl;
 
 		// For each triangle, retrieve vertices by indexing into cloud2.
 		pcl::PointXYZ p1 = cloud2.points[triangle.vertices[0]];
@@ -185,30 +172,7 @@ std::vector < Vertex4<float>> PointCloudLibrary::calculateSurface(std::vector<Po
 		std::cout << "P2: (" << p2.x << ", " << p2.y << ", " << p2.z << ")" << std::endl;
 		std::cout << "P3: (" << p3.x << ", " << p3.y << ", " << p3.z << ")" << std::endl;
 
-
-
 	}
-
-	/*for (const auto& point : cloud2) {
-
-		if (i++ % 3 == 0) {
-
-
-			Vertex4<float> vertex(point.x, point.y, point.z, 1.0f);
-			vertices.push_back(vertex);
-		}
-	}*/
-
-	std::cout << " vertices size=  " << vertices.size() << std::endl;
-
-
-	for (int i = 0; i < 10; i++) {
-		auto vertex = vertices[i];
-		std::cout << " x = " << vertex.x << "  ,";
-		std::cout << " y = " << vertex.y << "  ,";
-		std::cout << " z = " << vertex.z << "\n\n";
-	}
-
 
 	return vertices;
 }

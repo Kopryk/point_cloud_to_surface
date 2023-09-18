@@ -8,7 +8,7 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 #include "mesh/MeshTriangles.h"
-
+#include "../../surface_reconstruction/sources/point_cloud_library/point_cloud_library.h"
 #include <iostream>
 
 #include "Camera.h"
@@ -18,6 +18,16 @@
 GraphicsApplication::~GraphicsApplication()
 {
 	m_meshes.clear();
+}
+
+void GraphicsApplication::init()
+{
+	m_display = &Display::get();
+	m_display->init();
+	m_camera = &Camera::get();
+	m_camera->init(m_display->getWidth(), m_display->getHeight());
+
+	m_activeMesh = 0;
 }
 
 void GraphicsApplication::init(std::vector<Vertex4<float>>& points)
@@ -63,13 +73,11 @@ void GraphicsApplication::initWithTriangles(std::vector<Vertex4<float>>& triangl
 void GraphicsApplication::initWithTrianglesWithPoints(std::vector<Vertex4<float>>& triangleVerticles, std::vector<Vertex4<float>>& points)
 {
 	this->triangleVerticles = triangleVerticles;
-	this->points = triangleVerticles;
-	m_display = &Display::get();
-	m_display->init();
-	m_camera = &Camera::get();
-	m_camera->init(m_display->getWidth(), m_display->getHeight());
+	this->points = points;
 
-	m_activeMesh = 2;
+	std::cout << "points size = " << points.size();
+
+	m_activeMesh += 2;
 	createMeshesTriangleWithPoints(m_camera);
 }
 
@@ -136,7 +144,11 @@ void DebugMessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity
 
 void GraphicsApplication::mainLoop()
 {
+	init();
+
+	PointCloudLibrary pcl;
 	FrameBuffer frameBuffer;
+
 	frameBuffer.init(m_display->getRenderWindowWidth(), m_display->getRenderWindowHeight());
 
 	// Setup Dear ImGui context
@@ -153,7 +165,6 @@ void GraphicsApplication::mainLoop()
 
 	static bool dockspaceOpen = true;
 	static bool fullscreen = true;
-
 
 	glEnable(GL_DEBUG_OUTPUT);
 	glDebugMessageCallback(DebugMessageCallback, nullptr);
@@ -177,12 +188,16 @@ void GraphicsApplication::mainLoop()
 		if (ImGui::Button("Open viewport"))
 		{
 			render = !render;
-			// TODO OPEN FILEDIALOG
-			/*if (auto result = FileDialog::openFileDialog())
-			{
-				render = !render;
-			}*/
 		}
+
+		if (ImGui::Button("Open pointCloud"))
+		{
+			std::vector<Vertex4<float>> points;
+			auto verticles = pcl.calculateSurface(points);
+			initWithTrianglesWithPoints(verticles, points);
+		}
+
+
 		ImGui::End();
 
 		// update camera
@@ -200,8 +215,9 @@ void GraphicsApplication::mainLoop()
 			for (auto i = 0u; i < m_activeMesh; i++) {
 				RenderErrors::checkError();
 
-				m_meshes[i]->draw();
-
+				if (m_meshes[i]->isActive()) {
+					m_meshes[i]->draw();
+				}
 
 			}
 			RenderErrors::checkError();
@@ -210,9 +226,31 @@ void GraphicsApplication::mainLoop()
 			ImGui::Begin("Window");
 			{
 				ImGui::BeginChild("Window renderer");
+				ImVec2 childSize = ImGui::GetContentRegionAvail();
+
+				frameBuffer.setWidth(childSize.x);
+				frameBuffer.setHeight(childSize.y);
+
+
 				uint32_t colorTexture = frameBuffer.getColorTexture();
 				ImGui::Image(reinterpret_cast<void*>(static_cast<intptr_t>(colorTexture)), ImVec2{ static_cast<float>(frameBuffer.getWidth()),static_cast<float>(frameBuffer.getHeight()) }, ImVec2{ 0,1 }, ImVec2{ 1,0 });
 				ImGui::EndChild();
+			}
+			ImGui::End();
+
+
+			ImGui::Begin("Meshes");
+			{
+
+				for (auto i =0u; i< m_meshes.size(); i++ )
+				{
+					if (ImGui::Selectable(m_meshes[i]->m_name.c_str())) {
+						//mesh->changeActivity();
+						lastClickedMesh = i;
+						std::cout << "Clicked on: " << m_meshes[i]->m_name.c_str() << std::endl;
+					}
+
+				}
 			}
 			ImGui::End();
 
@@ -238,17 +276,36 @@ void GraphicsApplication::mainLoop()
 				ImGui::BeginChild("Point Cloud editor");
 				static float* clearColor = m_meshes[0]->getRenderer()->getClearColor();
 				ImGui::ColorEdit4("Background color", clearColor);
-				static Vertex4<float> color = m_meshes[0]->getColor();
-				ImGui::ColorEdit3("Color", color.data);
-				m_meshes[0]->setColor(color);
-				ImGui::SliderFloat("alpha", &color.a, 0.0f, 1.0f);
-				static float pointSize = 1.0f;
-				ImGui::SliderFloat("pointSize", &pointSize, 1.0f, 10.0f);
-				glPointSize(pointSize);
-				//glLineWidth(pointSize);
 				ImGui::EndChild();
 			}
 			ImGui::End();
+
+			ImGui::Begin("Mesh");
+			{
+				ImGui::BeginChild("Mesh editor");
+				Vertex4<float> color = m_meshes[lastClickedMesh]->getColor();
+				ImGui::ColorEdit3("Color", color.data);
+				ImGui::SliderFloat("alpha", &color.a, 0.0f, 1.0f);
+				m_meshes[lastClickedMesh]->setColor(color);
+				ImGui::Checkbox("Visible", &m_meshes[lastClickedMesh]->active);
+				
+				if (m_meshes[lastClickedMesh]->isPoint()) {
+					auto& pointSize = m_meshes[lastClickedMesh]->getPointSize();
+					ImGui::SliderFloat("pointSize", &pointSize, 1.0f, 10.0f);
+					glPointSize(pointSize);
+				}
+
+				if (m_meshes[lastClickedMesh]->isTriangle()) {
+					static const char* items[] = { "Fill triangles", "Only lines", "Fill + lines" };
+					auto& selectedItem = m_meshes[lastClickedMesh]->selectedMode; 
+					ImGui::Combo("Select Option", &selectedItem, items, IM_ARRAYSIZE(items));
+				}
+
+			
+				ImGui::EndChild();
+			}
+			ImGui::End();
+
 		}
 
 		RenderErrors::checkError();
@@ -316,13 +373,22 @@ void GraphicsApplication::createMeshesTriangle(Camera* camera)
 void GraphicsApplication::createMeshesTriangleWithPoints(Camera* camera)
 {
 	// points cloud
-	m_meshes.emplace_back(new MeshPoints(points, "points cloud"));
-	m_meshes.emplace_back(new MeshTriangles(triangleVerticles, "points cloud"));
+	std::string pointsMeshName = "points_mesh_" + std::to_string(this->numberOfMeshes);
+	std::string trianglesMeshName = "triangles_mesh_" + std::to_string(this->numberOfMeshes);
 
 
-	for (auto& mesh : m_meshes)
-	{
-		mesh->init(camera);
-	}
+
+	auto pointsMesh = new MeshPoints(points, pointsMeshName);
+	auto trianglesMesh = new MeshTriangles(triangleVerticles, trianglesMeshName);
+
+	pointsMesh->init(camera);
+	trianglesMesh->init(camera);
+
+	m_meshes.emplace_back(pointsMesh);
+	m_meshes.emplace_back(trianglesMesh);
+
+	numberOfMeshes++;
+
+
 }
 

@@ -27,6 +27,7 @@ public:
 	GraphicsApplication& operator=(const GraphicsApplication&) = delete;
 	~GraphicsApplication();
 
+	void init();
 	void init(std::vector<Vertex4<float>>& points);
 	void init(std::vector<Vertex4<float>>& points, std::vector<Vertex4<float>>& normals);
 	void initWithTriangles(std::vector<Vertex4<float>>& triangleVerticles);
@@ -51,10 +52,10 @@ private:
 	void createMeshesTriangleWithPoints(Camera* camera);
 
 	
-
-
-	uint32_t m_activeMesh = 1;
-
+	uint32_t numberOfMeshes=0;
+	//std::map<uint32_t, MeshBase*> meshesId{}; // copy of pointers, dont delete memory
+	uint32_t m_activeMesh = 0;
+	uint32_t lastClickedMesh = 0;
 
 };
 

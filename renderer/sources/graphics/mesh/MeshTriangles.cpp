@@ -14,15 +14,39 @@ MeshTriangles::MeshTriangles(std::vector<Vertex4<float>>& triangleVerticles, std
 
 void MeshTriangles::draw()
 {
-	//    m_renderer->clear(); // TODO move it  moved
-	m_shader->bind();
-	RenderErrors::checkError();
-	updateUniforms();
-	RenderErrors::checkError();
-	m_renderer->drawTriangles(*m_vertexArray, *m_shader);
-	RenderErrors::checkError();
-	printDebugInfo();
-	m_shader->unbind();
+
+	
+	if (selectedMode == 0 || selectedMode == 2) {
+
+		glEnable(GL_POLYGON_OFFSET_FILL);
+		glPolygonOffset(1.0f, 1.0f);
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+		//    m_renderer->clear(); // TODO move it  moved
+		m_shader->bind();
+		RenderErrors::checkError();
+		updateUniforms();
+		RenderErrors::checkError();
+		m_renderer->drawTriangles(*m_vertexArray, *m_shader);
+		RenderErrors::checkError();
+		printDebugInfo();
+		m_shader->unbind();
+		glDisable(GL_POLYGON_OFFSET_FILL);
+	}
+
+	if (selectedMode == 1 || selectedMode == 2) {
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		m_shader->bind();
+		RenderErrors::checkError();
+		updateUniforms();
+		RenderErrors::checkError();
+		m_renderer->drawTriangles(*m_vertexArray, *m_shader);
+		RenderErrors::checkError();
+		printDebugInfo();
+		m_shader->unbind();
+	}
+
+
 }
 
 void MeshTriangles::updateUniforms()

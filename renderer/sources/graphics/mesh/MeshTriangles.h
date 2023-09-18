@@ -15,6 +15,8 @@ public:
 
 	void draw() override;
 
+	virtual bool isTriangle() override { return true; }
+
 private:
 	void updateUniforms() override;
 	void initializeShader() override;

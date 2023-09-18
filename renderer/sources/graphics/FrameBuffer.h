@@ -19,6 +19,10 @@ public:
     int getWidth() { return m_width; }
     int getHeight() { return m_height; }
 
+    void setWidth(int width) { m_width = width; }
+    void setHeight(int height) { m_height = height; }
+
+
     [[nodiscard]] auto getColorTexture() const { return m_colorTexture; }
     [[nodiscard]] auto getDepthTexture() const { return m_depthTexture; }
 

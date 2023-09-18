@@ -22,7 +22,7 @@ class PointCloudLibrary {
 public:
 	PointCloudLibrary() = default;
 
-	std::vector < Vertex4<float>> calculateSurface(std::vector<Point>& points);
+	std::vector < Vertex4<float>> calculateSurface(std::vector < Vertex4<float>> &points );
     void generateFlatSurfacePointCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud,
         float width, float height,
         size_t numPoints,

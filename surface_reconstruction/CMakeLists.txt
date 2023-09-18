@@ -38,3 +38,6 @@ find_package(OpenCL  REQUIRED)
 
 # Link with OpenCL library
 target_link_libraries(surface_reconstruction PRIVATE ${OpenCL_LIBRARIES})
+
+
+
