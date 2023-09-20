@@ -355,11 +355,11 @@ void GraphicsApplication::mainLoop()
 					static bool useGridFilter = true;
 					ImGui::Checkbox("UseGridFilter", &useGridFilter);
 
-					static float gridSizeInPercent = 1;
+					static float gridSizeInPercent = 1.0;
 					ImGui::SliderFloat("gridSizeInPercent", &gridSizeInPercent, 0.1f, 10.0f);
 
-					static float neighbourRangeInPercent = 1;
-					ImGui::SliderFloat("neighbourRangeInPercent", &neighbourRangeInPercent, 0.1f, 10.0f);
+					static float neighbourRangeInPercent = 2.0;
+					ImGui::SliderFloat("neighbourRangeInPercent", &neighbourRangeInPercent, 0.1f, 25.0f);
 
 					if (ImGui::Button("Calculate Surface"))
 					{
