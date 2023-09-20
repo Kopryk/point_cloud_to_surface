@@ -10,7 +10,25 @@
 
 #include "../../external/nativefiledialog/src/include/nfd.h"
 
-std::vector <Vertex4<float>> PointCloudLibrary::calculateSurface(std::vector < Vertex4<float>>& points)
+
+uint32_t PointCloudLibrary::countLines(const std::string& filename) {
+	std::ifstream inFile(filename);
+	if (!inFile.is_open()) {
+		std::cerr << "Failed to open the file: " << filename << std::endl;
+		return 0;
+	}
+
+	uint32_t count = 0;
+	std::string line;
+	while (std::getline(inFile, line)) {
+		++count;
+	}
+
+	return count;
+}
+
+
+std::unique_ptr<PointCloudData> PointCloudLibrary::loadPoints()
 {
 	nfdchar_t* outPath = NULL;
 	nfdresult_t result = NFD_OpenDialog(NULL, NULL, &outPath);
@@ -23,11 +41,115 @@ std::vector <Vertex4<float>> PointCloudLibrary::calculateSurface(std::vector < V
 	}
 	else if (result == NFD_CANCEL) {
 		printf("User pressed cancel.\n");
+		return {};
 	}
 	else {
 		printf("Error: %s\n", NFD_GetError());
+		return {};
 	}
 
+	auto nLines = countLines(pathPoints);
+
+	std::ifstream file(pathPoints);
+	if (!file.is_open()) {
+		std::cerr << "Error opening file " << pathPoints << std::endl;
+		return {};
+	}
+
+	auto data = std::make_unique< PointCloudData>();
+
+	data->containsPointsWithColors = false;
+	data->containsPoints = true;
+	if (pathPoints.find("_klasyfikacja_kolory") != std::string::npos) {
+		data->containsPointsWithColors = true;
+	}
+
+
+	auto numberOfPoints = nLines;
+	//file >> numberOfPoints;
+
+	std::string line;
+	std::getline(file, line);  // consume newline after reading numberOfPoints
+
+	int i = 0;
+	if (data->containsPointsWithColors == false) {
+
+		data->buildings.points.reserve(numberOfPoints);
+
+		while (std::getline(file, line)) {
+			std::istringstream iss(line);
+			Vertex4<float> point(0, 0, 0, 0);
+			if (iss >> point.x >> point.y >> point.z) {
+				data->buildings.points.push_back(point);
+			}
+		}
+	}
+	else {
+
+		data->environment.points.reserve(numberOfPoints);
+		data->environment.colors.reserve(numberOfPoints);
+		data->buildings.points.reserve(numberOfPoints / 100);
+		data->buildings.colors.reserve(numberOfPoints / 100);
+
+		while (std::getline(file, line)) {
+			std::istringstream iss(line);
+			Vertex4<float> point(0, 0, 0, 0);
+			int className = 0;
+			float r, g, b;
+			if (iss >> point.x >> point.y >> point.z >> className >> r >> g >> b) {
+
+				constexpr int buildingClass = 6;
+
+				// colors read from furgeviewer are in uint16format, we need to conver it to float
+
+				r = r / std::numeric_limits<uint16_t>::max();
+				g = g / std::numeric_limits<uint16_t>::max();
+				b = b / std::numeric_limits<uint16_t>::max();
+
+				if (className == buildingClass) {
+					data->buildings.points.push_back(point);
+					data->buildings.colors.push_back({ r,g,b,1.0f });
+				}
+				else {
+					data->environment.points.push_back(point);
+					data->environment.colors.push_back({ r,g,b,1.0f });
+				}
+
+			}
+		}
+	}
+
+	if (data->buildings.points.size() == 0) {
+		return {};
+	}
+
+	static float globalX = data->buildings.points[0].x;
+	static float globalY = data->buildings.points[0].y;
+	static float globalZ = data->buildings.points[0].z;
+
+	if (data->environment.points.size() != 0) {
+		for (auto& point : data->environment.points) {
+			point.x -= globalX;
+			point.y -= globalY;
+			point.z -= globalZ;
+		}
+	}
+
+
+	for (auto& point : data->buildings.points) {
+		point.x -= globalX;
+		point.y -= globalY;
+		point.z -= globalZ;
+	}
+
+	return data;
+
+}
+
+void PointCloudLibrary::calculateSurface(PointCloudData* data, bool useGridFilter, double gridSizeInPercent, double neighbourRangeInPercent)
+{
+	// gridSizeInPercent = 0.0 - 1.0
+	// neighbourRangeInPercent = 0.0 - 1.0
 	// Create a point cloud object
 	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
 
@@ -35,22 +157,6 @@ std::vector <Vertex4<float>> PointCloudLibrary::calculateSurface(std::vector < V
 	pcl::NormalEstimation<pcl::PointXYZ, pcl::Normal> n;
 	pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>());
 	pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZ>());
-
-
-	std::ifstream file(pathPoints);
-	if (!file.is_open()) {
-		std::cerr << "Error opening file " << pathPoints << std::endl;
-	}
-
-	int numberOfPoints;
-	file >> numberOfPoints;
-
-	std::vector<Float3> points2;
-	points.reserve(numberOfPoints);
-	points2.reserve(numberOfPoints);
-
-	std::string line;
-	std::getline(file, line);  // consume newline after reading numberOfPoints
 
 
 	float minX = std::numeric_limits<float>::max();
@@ -61,40 +167,41 @@ std::vector <Vertex4<float>> PointCloudLibrary::calculateSurface(std::vector < V
 	float maxZ = maxX;
 
 
-	while (std::getline(file, line) && points2.size() < numberOfPoints) {
-		std::istringstream iss(line);
-		Float3 point;
-		if (iss >> point.x >> point.y >> point.z) {
 
-			minX = std::min(minX, point.x);
-			maxX = std::max(maxX, point.x);
-			minY = std::min(minY, point.y);
-			maxY = std::max(maxY, point.y);
-			minZ = std::min(minZ, point.z);
-			maxZ = std::max(maxZ, point.z);
+	for (auto& point : data->buildings.points) {
 
-			points2.push_back(point);
-		}
+		minX = std::min(minX, point.x);
+		maxX = std::max(maxX, point.x);
+		minY = std::min(minY, point.y);
+		maxY = std::max(maxY, point.y);
+		minZ = std::min(minZ, point.z);
+		maxZ = std::max(maxZ, point.z);
 	}
 
-	file.close();
+	double gridSizeX = 0;
+	double gridSizeY = 0;
+	double gridSizeZ = 0;
 
-	for (auto& point : points2) {
-		point.x = 10 * (point.x - minX) / (maxX - minX);
-		point.y = 10 * (point.y - minY) / (maxY - minY);
-		point.z = 10 * (point.z - minZ) / (maxZ - minZ);
+	if (useGridFilter) {
+		gridSizeX = (maxX - minX) * gridSizeInPercent;
+		gridSizeY = (maxY - minY) * gridSizeInPercent;
+		gridSizeZ = (maxZ - minZ) * gridSizeInPercent;
 	}
 
 
-	cloud->points.resize(points2.size());
-	for (int i = 0; i < points2.size(); i++) {
-		cloud->points[i].x = points2[i].x;
-		cloud->points[i].y = points2[i].y;
-		cloud->points[i].z = points2[i].z;
-		
 
-		Vertex4<float> p(points2[i].x, points2[i].y, points2[i].z, 1.0f);
-		points.push_back(p);
+
+
+	double neighborSearchRadius = (maxX - minX) * neighbourRangeInPercent;
+
+	std::cout << " neighborSearchRadius = " << neighborSearchRadius << std::endl;
+
+	cloud->points.resize(data->buildings.points.size());
+
+	for (int i = 0; i < data->buildings.points.size(); i++) {
+		cloud->points[i].x = data->buildings.points[i].x;
+		cloud->points[i].y = data->buildings.points[i].y;
+		cloud->points[i].z = data->buildings.points[i].z;
 	}
 
 	cloud->width = cloud->points.size();
@@ -103,16 +210,25 @@ std::vector <Vertex4<float>> PointCloudLibrary::calculateSurface(std::vector < V
 
 	pcl::PointCloud<pcl::PointXYZ>::Ptr cloudFiltered(new pcl::PointCloud<pcl::PointXYZ>);
 
-
-	// Create the filtering object
-	pcl::VoxelGrid<pcl::PointXYZ> sor;
-	sor.setInputCloud(cloud);
-	sor.setLeafSize(0.5, 0.5, 0.5);  // resolution of the voxel grid
-	sor.filter(*cloudFiltered);
+	if (useGridFilter) {
 
 
-	tree->setInputCloud(cloudFiltered);
-	n.setInputCloud(cloudFiltered);
+		// Create the filtering object
+		pcl::VoxelGrid<pcl::PointXYZ> sor;
+		sor.setInputCloud(cloud);
+		sor.setLeafSize(gridSizeX, gridSizeX, gridSizeX);  // for now use only gridSizeX -> should be correct
+		sor.filter(*cloudFiltered);
+
+
+		tree->setInputCloud(cloudFiltered);
+		n.setInputCloud(cloudFiltered);
+	}
+	else {
+		tree->setInputCloud(cloud);
+		n.setInputCloud(cloud);
+	}
+
+
 	n.setSearchMethod(tree);
 	n.setKSearch(21);
 	//n.setRadiusSearch(0.01f);
@@ -120,7 +236,14 @@ std::vector <Vertex4<float>> PointCloudLibrary::calculateSurface(std::vector < V
 
 	// Concatenate the point cloud with the normals
 	pcl::PointCloud<pcl::PointNormal>::Ptr cloud_with_normals(new pcl::PointCloud<pcl::PointNormal>);
-	pcl::concatenateFields(*cloudFiltered, *normals, *cloud_with_normals);
+
+	if (useGridFilter) {
+		pcl::concatenateFields(*cloudFiltered, *normals, *cloud_with_normals);
+	}
+	else {
+		pcl::concatenateFields(*cloud, *normals, *cloud_with_normals);
+	}
+
 
 	// Create search tree
 	pcl::search::KdTree<pcl::PointNormal>::Ptr tree2(new pcl::search::KdTree<pcl::PointNormal>);
@@ -131,7 +254,7 @@ std::vector <Vertex4<float>> PointCloudLibrary::calculateSurface(std::vector < V
 	pcl::PolygonMesh triangles;
 
 	// Set typical values for the parameters
-	gp3.setSearchRadius(2);
+	gp3.setSearchRadius(neighborSearchRadius);
 
 	gp3.setMu(2.5);
 	gp3.setMaximumNearestNeighbors(100);
@@ -145,13 +268,11 @@ std::vector <Vertex4<float>> PointCloudLibrary::calculateSurface(std::vector < V
 	gp3.setSearchMethod(tree2);
 	gp3.reconstruct(triangles);
 
-
 	pcl::PointCloud<pcl::PointXYZ> cloud2;
 	pcl::fromPCLPointCloud2(triangles.cloud, cloud2);
 
-
-
-	std::vector<Vertex4<float>> vertices;
+	data->surface.clear();
+	data->surface.reserve(triangles.polygons.size() * 3);
 
 	for (const auto& triangle : triangles.polygons) {
 
@@ -161,12 +282,14 @@ std::vector <Vertex4<float>> PointCloudLibrary::calculateSurface(std::vector < V
 		pcl::PointXYZ p3 = cloud2.points[triangle.vertices[2]];
 
 		Vertex4<float> vertex(p1.x, p1.y, p1.z, 1.0f);
-		vertices.push_back(vertex);
+		data->surface.push_back(vertex);
 
 		Vertex4<float> vertex2(p2.x, p2.y, p2.z, 1.0f);
-		vertices.push_back(vertex2);
+		data->surface.push_back(vertex2);
 		Vertex4<float> vertex3(p3.x, p3.y, p3.z, 1.0f);
-		vertices.push_back(vertex3);
+		data->surface.push_back(vertex3);
+
+
 		std::cout << "Triangle vertices:" << std::endl;
 		std::cout << "P1: (" << p1.x << ", " << p1.y << ", " << p1.z << ")" << std::endl;
 		std::cout << "P2: (" << p2.x << ", " << p2.y << ", " << p2.z << ")" << std::endl;
@@ -174,5 +297,5 @@ std::vector <Vertex4<float>> PointCloudLibrary::calculateSurface(std::vector < V
 
 	}
 
-	return vertices;
+
 }

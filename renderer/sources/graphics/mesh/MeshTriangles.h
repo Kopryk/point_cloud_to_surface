@@ -6,7 +6,7 @@ class MeshTriangles final :
 	public MeshBase
 {
 public:
-	explicit MeshTriangles(std::vector<Vertex4<float>>& triangleVerticles, std::string_view name);
+	explicit MeshTriangles(std::vector<Vertex4<float>>* triangleVerticles, std::string_view name);
 	~MeshTriangles() override = default;
 	MeshTriangles(const MeshTriangles&) = delete;
 	MeshTriangles(MeshTriangles&&) = delete;
@@ -23,6 +23,6 @@ private:
 	void initMvp() override;
 	void initVertexBuffer() override;
 
-	std::vector<Vertex4<float>> m_triangleVerticles;
+	std::vector<Vertex4<float>>* m_triangleVerticles;
 };
 

@@ -7,7 +7,7 @@ template <typename T>
 class VertexBuffer
 {
 public:
-    explicit VertexBuffer(std::vector<T>& data);
+    explicit VertexBuffer(std::vector<T>* data);
     ~VertexBuffer() = default;
     VertexBuffer(const VertexBuffer&) = delete;
     VertexBuffer(VertexBuffer&&) = delete;
@@ -21,11 +21,11 @@ public:
 
 private:
     GLuint m_vertexBufferObject;
-    std::vector<T> m_data;
+    std::vector<T> *m_data;
 };
 
 template <typename T>
-VertexBuffer<T>::VertexBuffer(std::vector<T>& data) : m_data(data)
+VertexBuffer<T>::VertexBuffer(std::vector<T>* data) : m_data(data)
 {
     glGenBuffers(1, &m_vertexBufferObject);
 }
@@ -45,12 +45,12 @@ void VertexBuffer<T>::unbind() const
 template <typename T>
 void VertexBuffer<T>::setData() const
 {
-    auto sizeInBytes = m_data.size() * sizeof(T);
-    glBufferData(GL_ARRAY_BUFFER, sizeInBytes, m_data.data(), GL_STATIC_DRAW);
+    auto sizeInBytes = m_data->size() * sizeof(T);
+    glBufferData(GL_ARRAY_BUFFER, sizeInBytes, m_data->data(), GL_STATIC_DRAW);
 }
 
 template <typename T>
 uint32_t VertexBuffer<T>::getCount() const
 {
-    return static_cast<uint32_t>(m_data.size());
+    return static_cast<uint32_t>(m_data->size());
 }

@@ -6,7 +6,7 @@ class MeshPoints final :
 	public MeshBase
 {
 public:
-	explicit MeshPoints(std::vector<Vertex4<float>>& points, std::string_view name);
+	explicit MeshPoints(std::vector<Vertex4<float>>* points, std::string_view name);
 	~MeshPoints() override = default;
 	MeshPoints(const MeshPoints&) = delete;
 	MeshPoints(MeshPoints&&) = delete;
@@ -23,6 +23,6 @@ private:
 	void initMvp() override;
 	void initVertexBuffer() override;
 
-	std::vector<Vertex4<float>> m_points;
+	std::vector<Vertex4<float>> *m_points;
 };
 

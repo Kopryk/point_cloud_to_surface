@@ -75,6 +75,6 @@ void VertexBufferLayout::addElement()
 	element.sizeInBytes = static_cast<size_t>(sizeInBytes);
 
 	m_elements.push_back(element);
-	m_offset += count * sizeof(float);
+	//m_offset += count * sizeof(float);
 }
 

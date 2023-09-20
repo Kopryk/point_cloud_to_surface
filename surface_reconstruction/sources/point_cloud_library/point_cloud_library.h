@@ -14,35 +14,18 @@
 
 
 struct Float3 {
-    float x, y, z;
+	float x, y, z;
 };
-
 
 class PointCloudLibrary {
 public:
+
 	PointCloudLibrary() = default;
+	std::vector < Vertex4<float>> normalizePoints(std::vector < Vertex4<float>>& points);
+	std::unique_ptr<PointCloudData> loadPoints();
+	void calculateSurface(PointCloudData* data, bool useGridFilter, double gridSizeInPercent = 0.001, double neighbourRangeInPercent = 0.001);
 
-	std::vector < Vertex4<float>> calculateSurface(std::vector < Vertex4<float>> &points );
-    void generateFlatSurfacePointCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud,
-        float width, float height,
-        size_t numPoints,
-        const pcl::PointXYZ& origin = pcl::PointXYZ(0, 0, 0)) {
-        std::random_device rd;
-        std::mt19937 gen(rd());
-        std::uniform_real_distribution<> disWidth(origin.x, origin.x + width);
-        std::uniform_real_distribution<> disHeight(origin.y, origin.y + height);
-
-        for (size_t i = 0; i < numPoints; ++i) {
-            pcl::PointXYZ point;
-            point.x = disWidth(gen);
-            point.y = disHeight(gen);
-            point.z = origin.z; // As it's a flat surface, z remains constant
-            cloud->points.push_back(point);
-        }
-    }
 
 private:
-
-
-
+	uint32_t countLines(const std::string& filename);
 };

@@ -3,6 +3,7 @@
 #include "FileDialog.h"
 #include "mesh/MeshPoints.h"
 #include "mesh/MeshLines.h"
+#include "mesh/MeshPointsWithColor.h"
 #include "utils/RenderUtils.h"
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
@@ -79,6 +80,64 @@ void GraphicsApplication::initWithTrianglesWithPoints(std::vector<Vertex4<float>
 
 	m_activeMesh += 2;
 	createMeshesTriangleWithPoints(m_camera);
+}
+
+void GraphicsApplication::initRawPointCloud()
+{
+	std::cout << "points size = " << points.size();
+	// points cloud
+
+
+	if (data.back()->containsPointsWithColors) {
+		m_activeMesh += 1;
+		std::string pointsMeshName = "buildings_" + std::to_string(this->numberOfMeshes);
+		auto pointsMesh = new MeshPointsWithColor(&data.back()->buildings.points, &data.back()->buildings.colors, pointsMeshName);
+
+		pointsMesh->init(m_camera);
+
+		m_meshes.emplace_back(pointsMesh);
+
+		numberOfMeshes++;
+
+
+		m_activeMesh += 1;
+		pointsMeshName = "environment_" + std::to_string(this->numberOfMeshes);
+		auto pointsMesh2 = new MeshPointsWithColor(&data.back()->environment.points, &data.back()->environment.colors, pointsMeshName);
+
+		pointsMesh2->init(m_camera);
+
+		m_meshes.emplace_back(pointsMesh2);
+
+		numberOfMeshes++;
+	}
+	else if (data.back()->containsPoints) {
+		std::string pointsMeshName = "point_cloud_" + std::to_string(this->numberOfMeshes);
+
+		m_activeMesh += 1;
+
+		auto pointsMesh = new MeshPoints(&data.back()->buildings.points, pointsMeshName);
+
+		pointsMesh->init(m_camera);
+
+		m_meshes.emplace_back(pointsMesh);
+
+		numberOfMeshes++;
+	}
+
+}
+
+void GraphicsApplication::initCalculatedSurface()
+{
+	m_activeMesh += 1;
+
+	std::string trianglesMeshName = "surface_" + std::to_string(this->numberOfMeshes);
+	auto trianglesMesh = new MeshTriangles(&data[lastClickedMesh].get()->surface, trianglesMeshName);
+
+	trianglesMesh->init(m_camera);
+
+	m_meshes.emplace_back(trianglesMesh);
+
+	numberOfMeshes++;
 }
 
 
@@ -192,9 +251,8 @@ void GraphicsApplication::mainLoop()
 
 		if (ImGui::Button("Open pointCloud"))
 		{
-			std::vector<Vertex4<float>> points;
-			auto verticles = pcl.calculateSurface(points);
-			initWithTrianglesWithPoints(verticles, points);
+			this->data.push_back(pcl.loadPoints());
+			initRawPointCloud();
 		}
 
 
@@ -242,7 +300,7 @@ void GraphicsApplication::mainLoop()
 			ImGui::Begin("Meshes");
 			{
 
-				for (auto i =0u; i< m_meshes.size(); i++ )
+				for (auto i = 0u; i < m_meshes.size(); i++)
 				{
 					if (ImGui::Selectable(m_meshes[i]->m_name.c_str())) {
 						//mesh->changeActivity();
@@ -288,20 +346,41 @@ void GraphicsApplication::mainLoop()
 				ImGui::SliderFloat("alpha", &color.a, 0.0f, 1.0f);
 				m_meshes[lastClickedMesh]->setColor(color);
 				ImGui::Checkbox("Visible", &m_meshes[lastClickedMesh]->active);
-				
+
 				if (m_meshes[lastClickedMesh]->isPoint()) {
 					auto& pointSize = m_meshes[lastClickedMesh]->getPointSize();
 					ImGui::SliderFloat("pointSize", &pointSize, 1.0f, 10.0f);
 					glPointSize(pointSize);
+
+					static bool useGridFilter = true;
+					ImGui::Checkbox("UseGridFilter", &useGridFilter);
+
+					static float gridSizeInPercent = 1;
+					ImGui::SliderFloat("gridSizeInPercent", &gridSizeInPercent, 0.1f, 10.0f);
+
+					static float neighbourRangeInPercent = 1;
+					ImGui::SliderFloat("neighbourRangeInPercent", &neighbourRangeInPercent, 0.1f, 10.0f);
+
+					if (ImGui::Button("Calculate Surface"))
+					{
+						pcl.calculateSurface(data[lastClickedMesh].get(), useGridFilter, gridSizeInPercent / 100.0, neighbourRangeInPercent / 100.0);
+						initCalculatedSurface();
+					}
 				}
 
 				if (m_meshes[lastClickedMesh]->isTriangle()) {
 					static const char* items[] = { "Fill triangles", "Only lines", "Fill + lines" };
-					auto& selectedItem = m_meshes[lastClickedMesh]->selectedMode; 
+					auto& selectedItem = m_meshes[lastClickedMesh]->selectedMode;
 					ImGui::Combo("Select Option", &selectedItem, items, IM_ARRAYSIZE(items));
 				}
 
-			
+
+				// load points only 1st.
+
+			/*	auto verticles = pcl.calculateSurface(points);
+			initWithTrianglesWithPoints(verticles, points);*/
+
+
 				ImGui::EndChild();
 			}
 			ImGui::End();
@@ -337,7 +416,7 @@ void GraphicsApplication::mainLoop()
 void GraphicsApplication::createMeshes(Camera* camera)
 {
 	// points cloud
-	m_meshes.emplace_back(new MeshPoints(points, "points cloud"));
+	m_meshes.emplace_back(new MeshPoints(&points, "points cloud"));
 
 	for (auto& mesh : m_meshes)
 	{
@@ -348,7 +427,7 @@ void GraphicsApplication::createMeshes(Camera* camera)
 void GraphicsApplication::createMeshes2(Camera* camera)
 {
 	// points cloud
-	m_meshes.emplace_back(new MeshPoints(points, "points cloud"));
+	m_meshes.emplace_back(new MeshPoints(&points, "points cloud"));
 	m_meshes.emplace_back(new MeshLines(points, normals, "points cloud"));
 
 
@@ -361,7 +440,7 @@ void GraphicsApplication::createMeshes2(Camera* camera)
 void GraphicsApplication::createMeshesTriangle(Camera* camera)
 {
 	// points cloud
-	m_meshes.emplace_back(new MeshTriangles(triangleVerticles, "points cloud"));
+	m_meshes.emplace_back(new MeshTriangles(&triangleVerticles, "points cloud"));
 
 
 	for (auto& mesh : m_meshes)
@@ -375,11 +454,8 @@ void GraphicsApplication::createMeshesTriangleWithPoints(Camera* camera)
 	// points cloud
 	std::string pointsMeshName = "points_mesh_" + std::to_string(this->numberOfMeshes);
 	std::string trianglesMeshName = "triangles_mesh_" + std::to_string(this->numberOfMeshes);
-
-
-
-	auto pointsMesh = new MeshPoints(points, pointsMeshName);
-	auto trianglesMesh = new MeshTriangles(triangleVerticles, trianglesMeshName);
+	auto pointsMesh = new MeshPoints(&points, pointsMeshName);
+	auto trianglesMesh = new MeshTriangles(&triangleVerticles, trianglesMeshName);
 
 	pointsMesh->init(camera);
 	trianglesMesh->init(camera);
@@ -388,7 +464,5 @@ void GraphicsApplication::createMeshesTriangleWithPoints(Camera* camera)
 	m_meshes.emplace_back(trianglesMesh);
 
 	numberOfMeshes++;
-
-
 }
 

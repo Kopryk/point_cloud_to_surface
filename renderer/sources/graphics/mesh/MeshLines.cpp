@@ -120,7 +120,7 @@ void MeshLines::initMvp()
 
 	//m_model = glm::rotate(m_model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 	//m_model = glm::translate(m_model, glm::vec3(-1.0f, 0.0f, 0.0f));
-	m_model = glm::scale(m_model, glm::vec3(10.0f));
+	m_model = glm::scale(m_model, glm::vec3(0.05f));
 
 
 	m_mvp = m_camera->getViewProjection() * m_model;
@@ -133,11 +133,11 @@ void MeshLines::initVertexBuffer()
 	m_vertexArray->bind();
 
 	// positions
-	m_vertexBuffer = new VertexBuffer<Vertex4<float>>(m_points);
+	m_vertexBuffer = new VertexBuffer<Vertex4<float>>(&m_points);
 	m_vertexBufferLayout = new VertexBufferLayout();
 
 	m_vertexBufferLayout->addElement<Vertex4<float>>();
-	m_vertexArray->linkVertexBuffer(*m_vertexBuffer, *m_vertexBufferLayout);
+	m_vertexArray->linkVertexBuffer(*m_vertexBuffer, *m_vertexBufferLayout, 0);
 
 	// normals
 	//m_vertexBufferNormals = new VertexBuffer<Vertex4<float>>(m_normals);

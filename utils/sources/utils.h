@@ -1,4 +1,5 @@
 #pragma once 
+#include <vector>
 
 namespace UTILS {
 
@@ -40,3 +41,20 @@ public:
 
 };
 
+
+struct PointCloudData {
+	struct Points {
+		std::vector <Vertex4<float>> points;
+		std::vector <Vertex4<float>> colors;
+	} environment;
+	struct Buildings {
+		std::vector <Vertex4<float>> points;
+		std::vector <Vertex4<float>> colors;
+	} buildings;
+
+	std::vector <Vertex4<float>> surface;
+
+	bool containsPoints = false;
+	bool containsSurface = false;
+	bool containsPointsWithColors = false;
+};

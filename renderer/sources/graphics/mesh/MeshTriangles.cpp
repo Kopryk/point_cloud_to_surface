@@ -6,7 +6,7 @@
 #include "../vertex/VertexArray.h"
 #include "../utils/RenderUtils.h"
 
-MeshTriangles::MeshTriangles(std::vector<Vertex4<float>>& triangleVerticles, std::string_view name) : MeshBase(name), m_triangleVerticles(triangleVerticles)
+MeshTriangles::MeshTriangles(std::vector<Vertex4<float>>* triangleVerticles, std::string_view name) : MeshBase(name), m_triangleVerticles(triangleVerticles)
 {
 
 }
@@ -82,7 +82,7 @@ void MeshTriangles::initMvp()
 
 	m_model = glm::rotate(m_model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 	m_model = glm::translate(m_model, glm::vec3(-1.0f, 0.0f, 0.0f));
-	m_model = glm::scale(m_model, glm::vec3(1.f));
+	m_model = glm::scale(m_model, glm::vec3(0.05f));
 
 
 	m_mvp = m_camera->getViewProjection() * m_model;
@@ -91,6 +91,7 @@ void MeshTriangles::initMvp()
 
 void MeshTriangles::initVertexBuffer()
 {
+	std::cout << " m_triangleVerticles size=" << m_triangleVerticles->size() << std::endl;
 	m_vertexArray = new VertexArray();
 	m_vertexArray->bind();
 	RenderErrors::checkError();
@@ -102,7 +103,7 @@ void MeshTriangles::initVertexBuffer()
 	// colors
 	//  m_vertexBufferLayout->addElement<Vertex4<float>>();
 	RenderErrors::checkError();
-	m_vertexArray->linkVertexBuffer(*m_vertexBuffer, *m_vertexBufferLayout);
+	m_vertexArray->linkVertexBuffer(*m_vertexBuffer, *m_vertexBufferLayout, 0);
 	RenderErrors::checkError();
 	m_vertexArray->unbind();
 	RenderErrors::checkError();

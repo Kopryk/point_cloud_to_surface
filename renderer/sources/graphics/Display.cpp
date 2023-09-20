@@ -16,6 +16,7 @@ void Display::init()
         _ASSERT(false);
     }
 
+    glfwWindowHint(GLFW_DEPTH_BITS, 32);
     m_window = glfwCreateWindow(m_windowSize.m_width, m_windowSize.m_height, "Point Cloud Modeling", nullptr, nullptr);
     if (!m_window)
     {
