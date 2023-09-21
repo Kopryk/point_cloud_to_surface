@@ -18,7 +18,7 @@ class Renderer;
 class MeshBase
 {
 public:
-	explicit  MeshBase(std::string_view name = "base");
+	explicit  MeshBase(std::string_view name = "base", std::vector<Vertex4<float>>* data = nullptr);
 	virtual  ~MeshBase();
 	MeshBase(const MeshBase&) = delete;
 	MeshBase(MeshBase&&) = delete;
@@ -53,17 +53,21 @@ public:
 		return pointSize;
 	}
 
+	virtual bool hasOriginalColors() {
+		return false;
+	}
+
+
+
 	float pointSize = 1.0f;
 	bool active = true;
 	void changeActivity() { std::cout << " active = " << active << std::endl;  active = !active; }
 	int selectedMode = 0;
-
+	std::vector<Vertex4<float>>* data;
 
 protected:
 
 	Camera* m_camera;
-
-
 	Shader* m_shader = nullptr; // TODO
 	Renderer* m_renderer = nullptr;   // TODO use unique_ptr 
 	glm::mat4 m_model = glm::mat4(1.0f);

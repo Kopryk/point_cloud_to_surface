@@ -8,7 +8,7 @@
 #include <iostream>
 #endif
 
-MeshBase::MeshBase(std::string_view name) : m_renderer(new Renderer()), m_name(name), m_camera(nullptr)
+MeshBase::MeshBase(std::string_view name, std::vector<Vertex4<float>>* data) : m_renderer(new Renderer()), m_name(name), m_camera(nullptr), data(data)
 {
 
 }

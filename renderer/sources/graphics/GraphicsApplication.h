@@ -29,35 +29,21 @@ public:
 	~GraphicsApplication();
 
 	void init();
-	void init(std::vector<Vertex4<float>>& points);
-	void init(std::vector<Vertex4<float>>& points, std::vector<Vertex4<float>>& normals);
-	void initWithTriangles(std::vector<Vertex4<float>>& triangleVerticles);
-	void initWithTrianglesWithPoints(std::vector<Vertex4<float>>& triangleVerticles, std::vector<Vertex4<float>>& points);
+	
 	void initRawPointCloud();
-	void initCalculatedSurface();
-
-
+	void initCalculatedSurface(std::vector<Vertex4<float>>* surface);
 	void mainLoop();
-	std::vector<Vertex4<float>> points; // TODO it should be removed
-	std::vector<Vertex4<float>> normals; // TODO it should be removed
-	std::vector<Vertex4<float>> triangleVerticles; // TODO it should be removed
-	std::vector<std::unique_ptr<PointCloudData>> data;
+
+
 
 private:
 	GraphicsApplication() = default;
 	std::vector<MeshBase*> m_meshes;
 	Display* m_display = nullptr;
 	Camera* m_camera = nullptr;
-	void createMeshes(Camera* camera);
-	void createMeshes2(Camera* camera);
-	void createMeshesTriangle(Camera* camera);
-	void createMeshesTriangleWithPoints(Camera* camera);
 
-
-
-
+	std::vector<std::unique_ptr<PointCloudData>> data;
 	uint32_t numberOfMeshes = 0;
-	//std::map<uint32_t, MeshBase*> meshesId{}; // copy of pointers, dont delete memory
 	uint32_t m_activeMesh = 0;
 	uint32_t lastClickedMesh = 0;
 

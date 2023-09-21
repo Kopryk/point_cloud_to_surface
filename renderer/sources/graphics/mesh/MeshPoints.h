@@ -23,6 +23,6 @@ private:
 	void initMvp() override;
 	void initVertexBuffer() override;
 
-	std::vector<Vertex4<float>> *m_points;
+
 };
 

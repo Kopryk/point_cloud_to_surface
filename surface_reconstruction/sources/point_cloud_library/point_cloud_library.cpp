@@ -146,7 +146,7 @@ std::unique_ptr<PointCloudData> PointCloudLibrary::loadPoints()
 
 }
 
-void PointCloudLibrary::calculateSurface(PointCloudData* data, bool useGridFilter, double gridSizeInPercent, double neighbourRangeInPercent)
+std::unique_ptr<PointCloudData>  PointCloudLibrary::calculateSurface(std::vector <Vertex4<float>>& pointCloud, bool useGridFilter, double gridSizeInPercent, double neighbourRangeInPercent)
 {
 	// gridSizeInPercent = 0.0 - 1.0
 	// neighbourRangeInPercent = 0.0 - 1.0
@@ -166,9 +166,9 @@ void PointCloudLibrary::calculateSurface(PointCloudData* data, bool useGridFilte
 	float minZ = minX;
 	float maxZ = maxX;
 
+	auto surface = std::make_unique< PointCloudData>();
 
-
-	for (auto& point : data->buildings.points) {
+	for (auto& point : pointCloud) {
 
 		minX = std::min(minX, point.x);
 		maxX = std::max(maxX, point.x);
@@ -188,20 +188,14 @@ void PointCloudLibrary::calculateSurface(PointCloudData* data, bool useGridFilte
 		gridSizeZ = (maxZ - minZ) * gridSizeInPercent;
 	}
 
-
-
-
-
 	double neighborSearchRadius = (maxX - minX) * neighbourRangeInPercent;
-
 	std::cout << " neighborSearchRadius = " << neighborSearchRadius << std::endl;
+	cloud->points.resize(pointCloud.size());
 
-	cloud->points.resize(data->buildings.points.size());
-
-	for (int i = 0; i < data->buildings.points.size(); i++) {
-		cloud->points[i].x = data->buildings.points[i].x;
-		cloud->points[i].y = data->buildings.points[i].y;
-		cloud->points[i].z = data->buildings.points[i].z;
+	for (int i = 0; i < pointCloud.size(); i++) {
+		cloud->points[i].x = pointCloud[i].x;
+		cloud->points[i].y = pointCloud[i].y;
+		cloud->points[i].z = pointCloud[i].z;
 	}
 
 	cloud->width = cloud->points.size();
@@ -271,8 +265,8 @@ void PointCloudLibrary::calculateSurface(PointCloudData* data, bool useGridFilte
 	pcl::PointCloud<pcl::PointXYZ> cloud2;
 	pcl::fromPCLPointCloud2(triangles.cloud, cloud2);
 
-	data->surface.clear();
-	data->surface.reserve(triangles.polygons.size() * 3);
+	surface->surface.clear();
+	surface->surface.reserve(triangles.polygons.size() * 3);
 
 	for (const auto& triangle : triangles.polygons) {
 
@@ -282,20 +276,20 @@ void PointCloudLibrary::calculateSurface(PointCloudData* data, bool useGridFilte
 		pcl::PointXYZ p3 = cloud2.points[triangle.vertices[2]];
 
 		Vertex4<float> vertex(p1.x, p1.y, p1.z, 1.0f);
-		data->surface.push_back(vertex);
+		surface->surface.push_back(vertex);
 
 		Vertex4<float> vertex2(p2.x, p2.y, p2.z, 1.0f);
-		data->surface.push_back(vertex2);
+		surface->surface.push_back(vertex2);
 		Vertex4<float> vertex3(p3.x, p3.y, p3.z, 1.0f);
-		data->surface.push_back(vertex3);
+		surface->surface.push_back(vertex3);
 
-
-		std::cout << "Triangle vertices:" << std::endl;
-		std::cout << "P1: (" << p1.x << ", " << p1.y << ", " << p1.z << ")" << std::endl;
-		std::cout << "P2: (" << p2.x << ", " << p2.y << ", " << p2.z << ")" << std::endl;
-		std::cout << "P3: (" << p3.x << ", " << p3.y << ", " << p3.z << ")" << std::endl;
-
+		//std::cout << "Triangle vertices:" << std::endl;
+		//std::cout << "P1: (" << p1.x << ", " << p1.y << ", " << p1.z << ")" << std::endl;
+		//std::cout << "P2: (" << p2.x << ", " << p2.y << ", " << p2.z << ")" << std::endl;
+		//std::cout << "P3: (" << p3.x << ", " << p3.y << ", " << p3.z << ")" << std::endl;
 	}
 
+
+	return surface;
 
 }

@@ -6,7 +6,7 @@
 #include "../vertex/VertexArray.h"
 #include "../utils/RenderUtils.h"
 
-MeshPointsWithColor::MeshPointsWithColor(std::vector<Vertex4<float>>* points, std::vector<Vertex4<float>>* colors, std::string_view name) : MeshBase(name), m_points(points), m_colors(colors)
+MeshPointsWithColor::MeshPointsWithColor(std::vector<Vertex4<float>>* points, std::vector<Vertex4<float>>* colors, std::string_view name) : MeshBase(name, points), m_colors(colors)
 {
 
 }
@@ -45,7 +45,6 @@ void MeshPointsWithColor::updateUniforms()
 
 void MeshPointsWithColor::initializeShader()
 {
-
 	m_shader = new Shader(R"(C:/Users/s1560/Desktop/magisterka_projekt/point_cloud_to_surface/resources/shaders/points_with_colors_vertex_shader.glsl)",
 		R"(C:/Users/s1560/Desktop/magisterka_projekt/point_cloud_to_surface/resources/shaders/points_with_colors_fragment_shader.glsl)");
 }
@@ -60,17 +59,14 @@ void MeshPointsWithColor::initMvp()
 	m_model = glm::translate(m_model, glm::vec3(-1.0f, 0.0f, 0.0f));
 	m_model = glm::scale(m_model, glm::vec3(0.05f));
 
-
 	m_mvp = m_camera->getViewProjection() * m_model;
-
 }
 
 void MeshPointsWithColor::initVertexBuffer()
 {
 	m_vertexArray = new VertexArray();
 	m_vertexArray->bind();
-
-	m_vertexBuffer = new VertexBuffer<Vertex4<float>>(m_points);
+	m_vertexBuffer = new VertexBuffer<Vertex4<float>>(data);
 	m_vertexBufferColors = new VertexBuffer<Vertex4<float>>(m_colors);
 
 	m_vertexBufferLayout = new VertexBufferLayout();
@@ -79,7 +75,6 @@ void MeshPointsWithColor::initVertexBuffer()
 	m_vertexBufferLayout->addElement<Vertex4<float>>();
 	// colors
 	m_vertexBufferLayout->addElement<Vertex4<float>>();
-
 
 	m_vertexArray->linkVertexBuffer(*m_vertexBuffer, *m_vertexBufferLayout, 0 );
 	m_vertexArray->linkVertexBuffer(*m_vertexBufferColors, *m_vertexBufferLayout, 1);

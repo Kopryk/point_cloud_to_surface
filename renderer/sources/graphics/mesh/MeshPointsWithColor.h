@@ -16,7 +16,13 @@ public:
 	void draw() override;
 	virtual bool isPoint() override { return true; }
 
+	virtual bool hasOriginalColors() override {
+		return true;
+	}
+
+
 	VertexBuffer<Vertex4<float>>* m_vertexBufferColors = nullptr;
+
 
 private:
 	void updateUniforms() override;
@@ -24,10 +30,6 @@ private:
 	void initMvp() override;
 	void initVertexBuffer() override;
 
-	std::vector<Vertex4<float>>* m_points;
 	std::vector<Vertex4<float>>* m_colors;
-
-
-
 };
 

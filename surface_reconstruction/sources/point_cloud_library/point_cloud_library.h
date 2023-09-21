@@ -23,7 +23,7 @@ public:
 	PointCloudLibrary() = default;
 	std::vector < Vertex4<float>> normalizePoints(std::vector < Vertex4<float>>& points);
 	std::unique_ptr<PointCloudData> loadPoints();
-	void calculateSurface(PointCloudData* data, bool useGridFilter, double gridSizeInPercent = 0.001, double neighbourRangeInPercent = 0.001);
+	std::unique_ptr<PointCloudData>  calculateSurface(std::vector <Vertex4<float>>& pointCloud, bool useGridFilter, double gridSizeInPercent = 0.001, double neighbourRangeInPercent = 0.001);
 
 
 private:

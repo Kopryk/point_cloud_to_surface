@@ -12,6 +12,7 @@
 #include "../../surface_reconstruction/sources/point_cloud_library/point_cloud_library.h"
 #include <iostream>
 
+#include "TaskManager.h"
 #include "Camera.h"
 #include "FrameBuffer.h"
 #include "Renderer.h"
@@ -31,107 +32,43 @@ void GraphicsApplication::init()
 	m_activeMesh = 0;
 }
 
-void GraphicsApplication::init(std::vector<Vertex4<float>>& points)
-{
-	this->points = points;
-	m_display = &Display::get();
-	m_display->init();
-	m_camera = &Camera::get();
-	m_camera->init(m_display->getWidth(), m_display->getHeight());
-
-	m_activeMesh = 1;
-	createMeshes(m_camera);
-}
-
-
-void GraphicsApplication::init(std::vector<Vertex4<float>>& points, std::vector<Vertex4<float>>& normals)
-{
-	this->points = points;
-	this->normals = normals;
-
-	m_display = &Display::get();
-	m_display->init();
-	m_camera = &Camera::get();
-	m_camera->init(m_display->getWidth(), m_display->getHeight());
-
-	m_activeMesh = 2;
-	createMeshes2(m_camera);
-}
-
-void GraphicsApplication::initWithTriangles(std::vector<Vertex4<float>>& triangleVerticles)
-{
-	this->triangleVerticles = triangleVerticles;
-	m_display = &Display::get();
-	m_display->init();
-	m_camera = &Camera::get();
-	m_camera->init(m_display->getWidth(), m_display->getHeight());
-
-	m_activeMesh = 1;
-	createMeshesTriangle(m_camera);
-
-}
-
-void GraphicsApplication::initWithTrianglesWithPoints(std::vector<Vertex4<float>>& triangleVerticles, std::vector<Vertex4<float>>& points)
-{
-	this->triangleVerticles = triangleVerticles;
-	this->points = points;
-
-	std::cout << "points size = " << points.size();
-
-	m_activeMesh += 2;
-	createMeshesTriangleWithPoints(m_camera);
-}
-
 void GraphicsApplication::initRawPointCloud()
 {
-	std::cout << "points size = " << points.size();
-	// points cloud
-
 
 	if (data.back()->containsPointsWithColors) {
-		m_activeMesh += 1;
-		std::string pointsMeshName = "buildings_" + std::to_string(this->numberOfMeshes);
-		auto pointsMesh = new MeshPointsWithColor(&data.back()->buildings.points, &data.back()->buildings.colors, pointsMeshName);
-
-		pointsMesh->init(m_camera);
-
-		m_meshes.emplace_back(pointsMesh);
-
-		numberOfMeshes++;
-
 
 		m_activeMesh += 1;
-		pointsMeshName = "environment_" + std::to_string(this->numberOfMeshes);
+		std::string pointsMeshName = "environment_" + std::to_string(this->numberOfMeshes);
 		auto pointsMesh2 = new MeshPointsWithColor(&data.back()->environment.points, &data.back()->environment.colors, pointsMeshName);
-
 		pointsMesh2->init(m_camera);
-
 		m_meshes.emplace_back(pointsMesh2);
-
 		numberOfMeshes++;
+
+		m_activeMesh += 1;
+		pointsMeshName = "buildings_" + std::to_string(this->numberOfMeshes);
+		auto pointsMesh = new MeshPointsWithColor(&data.back()->buildings.points, &data.back()->buildings.colors, pointsMeshName);
+		pointsMesh->init(m_camera);
+		m_meshes.emplace_back(pointsMesh);
+		numberOfMeshes++;
+
 	}
 	else if (data.back()->containsPoints) {
 		std::string pointsMeshName = "point_cloud_" + std::to_string(this->numberOfMeshes);
-
 		m_activeMesh += 1;
-
 		auto pointsMesh = new MeshPoints(&data.back()->buildings.points, pointsMeshName);
-
 		pointsMesh->init(m_camera);
-
 		m_meshes.emplace_back(pointsMesh);
-
 		numberOfMeshes++;
 	}
 
 }
 
-void GraphicsApplication::initCalculatedSurface()
+void GraphicsApplication::initCalculatedSurface(std::vector<Vertex4<float>>* surface)
 {
 	m_activeMesh += 1;
 
 	std::string trianglesMeshName = "surface_" + std::to_string(this->numberOfMeshes);
-	auto trianglesMesh = new MeshTriangles(&data[lastClickedMesh].get()->surface, trianglesMeshName);
+	auto trianglesMesh = new MeshTriangles(surface, trianglesMeshName);
 
 	trianglesMesh->init(m_camera);
 
@@ -147,8 +84,6 @@ void ShowDockSpace(bool* p_open)
 	bool opt_fullscreen = opt_fullscreen_persistant;
 	static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
 
-	// We are using the ImGuiWindowFlags_NoDocking flag to make the parent window not dockable into,
-	// because it would be confusing to have two docking targets within each others.
 	ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
 	if (opt_fullscreen)
 	{
@@ -162,16 +97,9 @@ void ShowDockSpace(bool* p_open)
 		window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
 	}
 
-	// When using ImGuiDockNodeFlags_PassthruCentralNode, DockSpace() will render our background 
-	// and handle the pass-thru hole, so we ask Begin() to not render a background.
 	if (dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode)
 		window_flags |= ImGuiWindowFlags_NoBackground;
 
-	// Important: note that we proceed even if Begin() returns false (aka window is collapsed).
-	// This is because we want to keep our DockSpace() active. If a DockSpace() is inactive,
-	// all active windows docked into it will lose their parent and become undocked.
-	// We cannot preserve the docking relationship between an active window and an inactive docking, otherwise
-	// any change of dockspace/settings would lead to windows being stuck in limbo and never being visible.
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 	ImGui::Begin("###DockSpace", p_open, window_flags);
 	ImGui::PopStyleVar();
@@ -206,6 +134,7 @@ void GraphicsApplication::mainLoop()
 	init();
 
 	PointCloudLibrary pcl;
+	TaskManager taskManager(&pcl);
 	FrameBuffer frameBuffer;
 
 	frameBuffer.init(m_display->getRenderWindowWidth(), m_display->getRenderWindowHeight());
@@ -251,24 +180,34 @@ void GraphicsApplication::mainLoop()
 
 		if (ImGui::Button("Open pointCloud"))
 		{
-			this->data.push_back(pcl.loadPoints());
-			initRawPointCloud();
+
+			taskManager.startLoadPoints();
+			taskManager.isLoadPointsResultReceived = false;
 		}
 
+		if (taskManager.isLoadPointsResultReceived == false) {
+			if (taskManager.isJobDone()) {
+				taskManager.isLoadPointsResultReceived = true;
+				auto result = taskManager.getResults();
+				if (result != nullptr &&
+					(result->buildings.points.size() > 0 || result->environment.points.size() > 0)) {
+
+					this->data.push_back(std::move(result));
+					initRawPointCloud();
+				}
+
+			}
+		}
 
 		ImGui::End();
 
 		// update camera
 		m_camera->update();
 
-
 		if (!m_meshes.empty() && render)
 		{
 			RenderErrors::checkError();
 			frameBuffer.bind();
-
-			// TODO it should check if mesh is active instead of simple looping over all meshes
-			// now only last meshes can be disabled
 			m_meshes[0]->getRenderer()->clear();
 			for (auto i = 0u; i < m_activeMesh; i++) {
 				RenderErrors::checkError();
@@ -296,23 +235,21 @@ void GraphicsApplication::mainLoop()
 			}
 			ImGui::End();
 
-
 			ImGui::Begin("Meshes");
 			{
 
 				for (auto i = 0u; i < m_meshes.size(); i++)
 				{
 					if (ImGui::Selectable(m_meshes[i]->m_name.c_str())) {
-						//mesh->changeActivity();
+
 						lastClickedMesh = i;
 						std::cout << "Clicked on: " << m_meshes[i]->m_name.c_str() << std::endl;
 					}
-
 				}
 			}
 			ImGui::End();
 
-			//// render your GUI
+			// render GUI
 			ImGui::Begin("Camera menu");
 			{
 				ImGui::BeginChild("menu");
@@ -342,7 +279,11 @@ void GraphicsApplication::mainLoop()
 			{
 				ImGui::BeginChild("Mesh editor");
 				Vertex4<float> color = m_meshes[lastClickedMesh]->getColor();
-				ImGui::ColorEdit3("Color", color.data);
+				if (m_meshes[lastClickedMesh]->hasOriginalColors() == false)
+				{
+					ImGui::ColorEdit3("Color", color.data);
+				}
+
 				ImGui::SliderFloat("alpha", &color.a, 0.0f, 1.0f);
 				m_meshes[lastClickedMesh]->setColor(color);
 				ImGui::Checkbox("Visible", &m_meshes[lastClickedMesh]->active);
@@ -363,8 +304,19 @@ void GraphicsApplication::mainLoop()
 
 					if (ImGui::Button("Calculate Surface"))
 					{
-						pcl.calculateSurface(data[lastClickedMesh].get(), useGridFilter, gridSizeInPercent / 100.0, neighbourRangeInPercent / 100.0);
-						initCalculatedSurface();
+						taskManager.startSurfaceReconstruction(m_meshes[lastClickedMesh]->data, useGridFilter, gridSizeInPercent / 100.0, neighbourRangeInPercent / 100.0);
+						taskManager.isSurfaceReconstructionResultReceived = false;
+					}
+
+					if (taskManager.isSurfaceReconstructionResultReceived == false) {
+						if (taskManager.isJobDone()) {
+							taskManager.isSurfaceReconstructionResultReceived = true;
+							auto result = taskManager.getResults();
+							if (result != nullptr && result->surface.size() > 0) {
+								this->data.push_back(std::move(result));
+								initCalculatedSurface(&this->data.back()->surface);
+							}
+						}
 					}
 				}
 
@@ -375,12 +327,6 @@ void GraphicsApplication::mainLoop()
 				}
 
 
-				// load points only 1st.
-
-			/*	auto verticles = pcl.calculateSurface(points);
-			initWithTrianglesWithPoints(verticles, points);*/
-
-
 				ImGui::EndChild();
 			}
 			ImGui::End();
@@ -389,9 +335,7 @@ void GraphicsApplication::mainLoop()
 
 		RenderErrors::checkError();
 
-
-
-		// Render dear imgui into screen
+		// render dear imgui into screen
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
@@ -412,57 +356,3 @@ void GraphicsApplication::mainLoop()
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
 }
-
-void GraphicsApplication::createMeshes(Camera* camera)
-{
-	// points cloud
-	m_meshes.emplace_back(new MeshPoints(&points, "points cloud"));
-
-	for (auto& mesh : m_meshes)
-	{
-		mesh->init(camera);
-	}
-}
-
-void GraphicsApplication::createMeshes2(Camera* camera)
-{
-	// points cloud
-	m_meshes.emplace_back(new MeshPoints(&points, "points cloud"));
-	m_meshes.emplace_back(new MeshLines(points, normals, "points cloud"));
-
-
-	for (auto& mesh : m_meshes)
-	{
-		mesh->init(camera);
-	}
-}
-
-void GraphicsApplication::createMeshesTriangle(Camera* camera)
-{
-	// points cloud
-	m_meshes.emplace_back(new MeshTriangles(&triangleVerticles, "points cloud"));
-
-
-	for (auto& mesh : m_meshes)
-	{
-		mesh->init(camera);
-	}
-}
-
-void GraphicsApplication::createMeshesTriangleWithPoints(Camera* camera)
-{
-	// points cloud
-	std::string pointsMeshName = "points_mesh_" + std::to_string(this->numberOfMeshes);
-	std::string trianglesMeshName = "triangles_mesh_" + std::to_string(this->numberOfMeshes);
-	auto pointsMesh = new MeshPoints(&points, pointsMeshName);
-	auto trianglesMesh = new MeshTriangles(&triangleVerticles, trianglesMeshName);
-
-	pointsMesh->init(camera);
-	trianglesMesh->init(camera);
-
-	m_meshes.emplace_back(pointsMesh);
-	m_meshes.emplace_back(trianglesMesh);
-
-	numberOfMeshes++;
-}
-
