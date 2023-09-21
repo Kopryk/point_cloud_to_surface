@@ -29,12 +29,12 @@ public:
 	~GraphicsApplication();
 
 	void init();
-	
+
 	void initRawPointCloud();
 	void initCalculatedSurface(std::vector<Vertex4<float>>* surface);
 	void mainLoop();
 
-
+	void saveAsObj(std::vector < Vertex4<float>>& points);
 
 private:
 	GraphicsApplication() = default;

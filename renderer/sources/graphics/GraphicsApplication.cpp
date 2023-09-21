@@ -314,6 +314,7 @@ void GraphicsApplication::mainLoop()
 							auto result = taskManager.getResults();
 							if (result != nullptr && result->surface.size() > 0) {
 								this->data.push_back(std::move(result));
+								saveAsObj(this->data.back()->surface);
 								initCalculatedSurface(&this->data.back()->surface);
 							}
 						}
@@ -355,4 +356,25 @@ void GraphicsApplication::mainLoop()
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
+}
+
+void GraphicsApplication::saveAsObj(std::vector < Vertex4<float>>& points)
+{
+	std::string filename = "points.obj";
+	std::ofstream file(filename);
+
+	if (!file.is_open()) {
+		std::cerr << "Failed to open the file." << std::endl;
+		return;
+	}
+
+	for (auto& p : points) {
+		file << "v " << p.x << " " << p.y << " " << p.z << "\n";
+	}
+
+	for (size_t i = 0; i < points.size(); i += 3) {
+		file << "f " << (i + 1) << " " << (i + 2) << " " << (i + 3) << "\n";
+	}
+
+	file.close();
 }
