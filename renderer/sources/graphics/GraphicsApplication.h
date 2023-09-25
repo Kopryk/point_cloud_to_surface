@@ -4,6 +4,7 @@
 #include <vector>
 #include "../../utils/sources/utils.h"
 #include <memory>
+#include <string>
 
 // clang-format off
 #include <gl/glew.h>
@@ -34,7 +35,7 @@ public:
 	void initCalculatedSurface(std::vector<Vertex4<float>>* surface);
 	void mainLoop();
 
-	void saveAsObj(std::vector < Vertex4<float>>& points);
+	void saveAsObj(std::vector < Vertex4<float>>& points, const std::string& name);
 
 private:
 	GraphicsApplication() = default;

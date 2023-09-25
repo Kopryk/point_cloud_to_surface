@@ -17,6 +17,10 @@
 #include "FrameBuffer.h"
 #include "Renderer.h"
 
+#include <chrono>
+#include <iomanip>
+#include <sstream>
+
 GraphicsApplication::~GraphicsApplication()
 {
 	m_meshes.clear();
@@ -288,6 +292,7 @@ void GraphicsApplication::mainLoop()
 				m_meshes[lastClickedMesh]->setColor(color);
 				ImGui::Checkbox("Visible", &m_meshes[lastClickedMesh]->active);
 
+
 				if (m_meshes[lastClickedMesh]->isPoint()) {
 					auto& pointSize = m_meshes[lastClickedMesh]->getPointSize();
 					ImGui::SliderFloat("pointSize", &pointSize, 1.0f, 10.0f);
@@ -314,7 +319,7 @@ void GraphicsApplication::mainLoop()
 							auto result = taskManager.getResults();
 							if (result != nullptr && result->surface.size() > 0) {
 								this->data.push_back(std::move(result));
-								saveAsObj(this->data.back()->surface);
+
 								initCalculatedSurface(&this->data.back()->surface);
 							}
 						}
@@ -325,6 +330,13 @@ void GraphicsApplication::mainLoop()
 					static const char* items[] = { "Fill triangles", "Only lines", "Fill + lines" };
 					auto& selectedItem = m_meshes[lastClickedMesh]->selectedMode;
 					ImGui::Combo("Select Option", &selectedItem, items, IM_ARRAYSIZE(items));
+
+					if (ImGui::Button("Save model as .obj"))
+					{
+						saveAsObj(*m_meshes[lastClickedMesh]->data, m_meshes[lastClickedMesh]->m_name);
+
+					}
+
 				}
 
 
@@ -358,13 +370,23 @@ void GraphicsApplication::mainLoop()
 	ImGui::DestroyContext();
 }
 
-void GraphicsApplication::saveAsObj(std::vector < Vertex4<float>>& points)
+void GraphicsApplication::saveAsObj(std::vector < Vertex4<float>>& points, const std::string& name)
 {
-	std::string filename = "points.obj";
+	auto now = std::chrono::system_clock::now();
+	auto now_timet_t = std::chrono::system_clock::to_time_t(now);
+
+	std::stringstream ss;
+	ss << std::put_time(std::localtime(&now_timet_t), "%d-%m-%Y-%X");
+	std::string filename = name + "_" + ss.str();
+
+	std::replace(filename.begin(), filename.end(), ':', '-');
+
+	filename += ".obj";
+
 	std::ofstream file(filename);
 
 	if (!file.is_open()) {
-		std::cerr << "Failed to open the file." << std::endl;
+		std::cerr << "Failed to open file: " << filename << std::endl;
 		return;
 	}
 
@@ -372,9 +394,7 @@ void GraphicsApplication::saveAsObj(std::vector < Vertex4<float>>& points)
 		file << "v " << p.x << " " << p.y << " " << p.z << "\n";
 	}
 
-	for (size_t i = 0; i < points.size(); i += 3) {
+	for (auto i = 0u; i < points.size(); i += 3) {
 		file << "f " << (i + 1) << " " << (i + 2) << " " << (i + 3) << "\n";
 	}
-
-	file.close();
 }
