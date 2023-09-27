@@ -298,18 +298,37 @@ void GraphicsApplication::mainLoop()
 					ImGui::SliderFloat("pointSize", &pointSize, 1.0f, 10.0f);
 					glPointSize(pointSize);
 
-					static bool useGridFilter = true;
-					ImGui::Checkbox("UseGridFilter", &useGridFilter);
-
-					static float gridSizeInPercent = 1.0;
-					ImGui::SliderFloat("gridSizeInPercent", &gridSizeInPercent, 0.1f, 10.0f);
 
 					static float neighbourRangeInPercent = 2.0;
-					ImGui::SliderFloat("neighbourRangeInPercent", &neighbourRangeInPercent, 0.1f, 25.0f);
+					ImGui::SliderFloat("Neighbors range \nin %: ", &neighbourRangeInPercent, 0.1f, 25.0f);
+
+					static const char* optimizationOptions[] = { "None", "Grid Filter", "Moving Least Squares", "MLS - Upsampling"};
+					ImGui::Combo("PointCloud\n optimization: ", reinterpret_cast<int*>(&optimizationMode), optimizationOptions, IM_ARRAYSIZE(optimizationOptions));
+
+					if (optimizationMode == PointCloudOptimizationMode::GridFilter) {
+						ImGui::SliderFloat("Filter grid\n in %: ", &gridSizeInPercent, 0.1f, 10.0f);
+					}
+
+					if (optimizationMode == PointCloudOptimizationMode::MLSUpsampling) {
+						ImGui::SliderFloat("Dilatation Voxel\n in %: ", &dilationVoxelSizeInPercent, 0.1f, 10.0f);
+						ImGui::SliderInt("Dilatation iterations: ", reinterpret_cast<int*>(&dilationIteration), 1, 16);
+					}
+
+					static const char* reconstructionOptions[] = { "Poisson", "GreedyProjectionTriangulation", "MarchingCubesHoppe" };
+					ImGui::Combo("Reconstruction\n mode: ", reinterpret_cast<int*>(&reconstructionMode), reconstructionOptions, IM_ARRAYSIZE(reconstructionOptions));
+
+					if (reconstructionMode == SurfaceReconstructionMode::MarchingCubesHoppe) {
+						ImGui::SliderInt("Grid Resolution: ", reinterpret_cast<int*>(&gridResolution), 64, 256);
+					}
+
+					else if (reconstructionMode == SurfaceReconstructionMode::Poisson) {
+						ImGui::SliderInt("Octree\n max depth: ", reinterpret_cast<int*>(&depthOctree), 3, 16);
+					}
 
 					if (ImGui::Button("Calculate Surface"))
 					{
-						taskManager.startSurfaceReconstruction(m_meshes[lastClickedMesh]->data, useGridFilter, gridSizeInPercent / 100.0, neighbourRangeInPercent / 100.0);
+
+						taskManager.startSurfaceReconstruction(m_meshes[lastClickedMesh]->data, optimizationMode, reconstructionMode, depthOctree, gridResolution, gridSizeInPercent / 100.0, neighbourRangeInPercent / 100.0, dilationVoxelSizeInPercent, dilationIteration);
 						taskManager.isSurfaceReconstructionResultReceived = false;
 					}
 

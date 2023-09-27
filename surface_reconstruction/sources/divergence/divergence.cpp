@@ -165,8 +165,7 @@ void SR::Divergence::checkIfGpuIsAvailable()
 										    global uint* voxels,
 										    int gridSizeX, int gridSizeY, int gridSizeZ, uint invalidVoxelValue) 
 {
-
-			
+		
 			uint x = get_global_id(0);
 			uint y = get_global_id(1);
 			uint z = get_global_id(2);
@@ -178,7 +177,6 @@ void SR::Divergence::checkIfGpuIsAvailable()
 			{
 				return;
 			}
-
 
 			float divergenceX = 0.0f;
 			float divergenceY = 0.0f;

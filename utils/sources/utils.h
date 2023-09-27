@@ -1,5 +1,6 @@
 #pragma once 
 #include <vector>
+#include <chrono>
 
 namespace UTILS {
 
@@ -57,4 +58,33 @@ struct PointCloudData {
 	bool containsPoints = false;
 	bool containsSurface = false;
 	bool containsPointsWithColors = false;
+};
+
+
+enum SurfaceReconstructionMode : uint32_t {
+	Poisson,
+	GreedyProjectionTriangulation,
+	MarchingCubesHoppe
+};
+
+enum PointCloudOptimizationMode : uint32_t {
+	None,
+	GridFilter,
+	MLS,
+	MLSUpsampling
+};
+
+
+
+class Clock {
+public:
+	Clock() : startTime{ std::chrono::high_resolution_clock::now() } {}
+
+	uint64_t getTimeInMilliseconds() const {
+		auto endTime = std::chrono::high_resolution_clock::now();
+		return std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();
+	}
+
+private:
+	std::chrono::high_resolution_clock::time_point startTime;
 };

@@ -10,15 +10,12 @@
 
 void OctreeNode::insert(Point& point, uint32_t depth)
 {
-
 	if (isPointInsideBoundingBox(point) == false) {
 		return;
 	}
-
 	// if  node has reached  maximum points and hasn't reached maximum depth, split it
 	if (depth < maxDepth && points.size() >= maxPoints)
 	{
-
 		// if leaf split it
 		if (this->isLeaf()) {
 			subdivide();
@@ -35,7 +32,6 @@ void OctreeNode::insert(Point& point, uint32_t depth)
 		}
 		points.clear();  // remove points after moving them to children
 	}
-
 	if (this->isLeaf()) {
 		points.push_back(point);
 	}
@@ -46,10 +42,7 @@ void OctreeNode::insert(Point& point, uint32_t depth)
 				return;
 			}
 		}
-
 	}
-
-
 }
 
 bool OctreeNode::isPointInsideBoundingBox(Point& point)
@@ -165,7 +158,7 @@ std::vector<Triangle> OctreeNode::solvePoissonProblem(OctreeNode* root) {
 
 	Eigen::ConjugateGradient<Eigen::SparseMatrix<double>, Eigen::Lower | Eigen::Upper> solver;
 	solver.setMaxIterations(1000);
-	solver.setTolerance(0.1); // fixme
+	solver.setTolerance(0.1);
 
 	solver.compute(A);
 

@@ -12,7 +12,7 @@ public:
 	TaskManager(PointCloudLibrary* pcl) : pcl(pcl) {}
 
 	void startLoadPoints();
-	void startSurfaceReconstruction(std::vector< Vertex4<float>>* data, bool useGridFilter, double gridSizeInPercent, double neighbourRangeInPercent);
+	void startSurfaceReconstruction(std::vector<Vertex4<float>>* data, PointCloudOptimizationMode optimizationMode, SurfaceReconstructionMode reconstructionMode, uint32_t depthOctree, uint32_t gridResolution, double gridSizeInPercent, double neighbourRangeInPercent, float dilationVoxelSizeInPercent, uint32_t dilationIteration);
 	bool isJobDone();
 	std::unique_ptr<PointCloudData> getResults();
 
@@ -32,6 +32,6 @@ private:
 	bool jobRunning = false;
 
 	static void taskLoadPoints(TaskManager* taskManager);
-	static void taskSurfaceReconstruction(TaskManager* taskManager, std::vector< Vertex4<float>>* data, bool useGridFilter, double gridSizeInPercent, double neighbourRangeInPercent);
+	static void taskSurfaceReconstruction(TaskManager* taskManager, std::vector<Vertex4<float>>* data, PointCloudOptimizationMode optimizationMode, SurfaceReconstructionMode reconstructionMode, uint32_t depthOctree, uint32_t gridResolution, double gridSizeInPercent, double neighbourRangeInPercent, float dilationVoxelSizeInPercent, uint32_t dilationIteration);
 
 };
