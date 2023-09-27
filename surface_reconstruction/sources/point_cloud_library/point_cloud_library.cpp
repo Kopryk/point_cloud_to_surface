@@ -265,7 +265,7 @@ std::unique_ptr<PointCloudData>  PointCloudLibrary::calculateSurface(std::vector
 
 		pcl::MovingLeastSquares<pcl::PointXYZ, pcl::PointNormal> mls;
 		mls.setInputCloud(cloud);
-		//mls.setPolynomialOrder(2);
+		mls.setPolynomialOrder(2);
 		mls.setSearchMethod(pcl::search::KdTree<pcl::PointXYZ>::Ptr(new pcl::search::KdTree<pcl::PointXYZ>));
 		mls.setSearchRadius(neighborSearchRadius);
 		mls.setUpsamplingMethod(pcl::MovingLeastSquares<pcl::PointXYZ, pcl::PointNormal>::VOXEL_GRID_DILATION);
