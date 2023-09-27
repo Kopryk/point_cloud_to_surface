@@ -26,7 +26,7 @@ public:
 	MeshBase& operator=(MeshBase&&) = delete;
 
 	virtual void draw() = 0;
-	virtual void init(Camera* camera);
+	virtual void init(Camera* camera, std::string& pathToShaderDir);
 	virtual void updateModel(float modelPosition[]);
 
 	Renderer* getRenderer() { return m_renderer; }
@@ -58,6 +58,7 @@ public:
 	}
 
 
+	std::string pathToShaderDir = "";
 
 	float pointSize = 1.0f;
 	bool active = true;

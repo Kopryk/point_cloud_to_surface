@@ -46,9 +46,13 @@ void MeshPoints::updateUniforms()
 
 void MeshPoints::initializeShader()
 {
+	auto fragmentShaderPath = pathToShaderDir + "/basic_fragment_shader.glsl";
+	auto vertexShaderPath = pathToShaderDir + "/basic_vertex_shader.glsl";
 
-	m_shader = new Shader(R"(C:/Users/s1560/Desktop/magisterka_projekt/point_cloud_to_surface/resources/shaders/basic_vertex_shader.glsl)",
-		R"(C:/Users/s1560/Desktop/magisterka_projekt/point_cloud_to_surface/resources/shaders/basic_fragment_shader.glsl)");
+	m_shader = new Shader(vertexShaderPath, fragmentShaderPath);
+
+	//m_shader = new Shader(R"(C:/Users/s1560/Desktop/magisterka_projekt/point_cloud_to_surface/resources/shaders/basic_vertex_shader.glsl)",
+	//	R"(C:/Users/s1560/Desktop/magisterka_projekt/point_cloud_to_surface/resources/shaders/basic_fragment_shader.glsl)");
 }
 
 void MeshPoints::initMvp()

@@ -21,23 +21,23 @@ include_directories(${EIGEN3_INCLUDE_DIR})
 # installed via vcpkg
 
 # Include OpenCL headers
-set(OpenCL_INCLUDE_DIR  ${CMAKE_SOURCE_DIR}/external/opencl-headers)
-target_include_directories(surface_reconstruction PUBLIC ${OpenCL_INCLUDE_DIR})
+#set(OpenCL_INCLUDE_DIR  ${CMAKE_SOURCE_DIR}/external/opencl-headers)
+#target_include_directories(surface_reconstruction PUBLIC ${OpenCL_INCLUDE_DIR})
 
 #set(OpenCL_INCLUDE_DIR /path/to/opencl/include)
 #set(OpenCL_LIBRARY /path/to/opencl/library)
 
 # Include OpenCL cpp bindings
-set(OpenCL_CLHPP_INCLUDE_DIR  ${CMAKE_SOURCE_DIR}/external/opencl-clhpp/include)
-target_include_directories(surface_reconstruction PUBLIC ${OpenCL_CLHPP_INCLUDE_DIR})
+#set(OpenCL_CLHPP_INCLUDE_DIR  ${CMAKE_SOURCE_DIR}/external/opencl-clhpp/include)
+#target_include_directories(surface_reconstruction PUBLIC ${OpenCL_CLHPP_INCLUDE_DIR})
 
 # Find OpenCL package
 # somehow it doesnt work, so OpenCL_LIBRARY has to be hardcoded for now
-set(OpenCL_LIBRARY "C:/Program Files (x86)/Intel/oneAPI/compiler/2023.0.0/windows/lib/OpenCL.lib")
-find_package(OpenCL  REQUIRED)
+#set(OpenCL_LIBRARY "C:/Program Files (x86)/Intel/oneAPI/compiler/2023.0.0/windows/lib/OpenCL.lib")
+#find_package(OpenCL  REQUIRED)
 
 # Link with OpenCL library
-target_link_libraries(surface_reconstruction PRIVATE ${OpenCL_LIBRARIES})
+#target_link_libraries(surface_reconstruction PRIVATE ${OpenCL_LIBRARIES})
 
 
 

@@ -44,14 +44,14 @@ void GraphicsApplication::initRawPointCloud()
 		m_activeMesh += 1;
 		std::string pointsMeshName = "environment_" + std::to_string(this->numberOfMeshes);
 		auto pointsMesh2 = new MeshPointsWithColor(&data.back()->environment.points, &data.back()->environment.colors, pointsMeshName);
-		pointsMesh2->init(m_camera);
+		pointsMesh2->init(m_camera, shaderPath);
 		m_meshes.emplace_back(pointsMesh2);
 		numberOfMeshes++;
 
 		m_activeMesh += 1;
 		pointsMeshName = "buildings_" + std::to_string(this->numberOfMeshes);
 		auto pointsMesh = new MeshPointsWithColor(&data.back()->buildings.points, &data.back()->buildings.colors, pointsMeshName);
-		pointsMesh->init(m_camera);
+		pointsMesh->init(m_camera, shaderPath);
 		m_meshes.emplace_back(pointsMesh);
 		numberOfMeshes++;
 
@@ -60,7 +60,7 @@ void GraphicsApplication::initRawPointCloud()
 		std::string pointsMeshName = "point_cloud_" + std::to_string(this->numberOfMeshes);
 		m_activeMesh += 1;
 		auto pointsMesh = new MeshPoints(&data.back()->buildings.points, pointsMeshName);
-		pointsMesh->init(m_camera);
+		pointsMesh->init(m_camera, shaderPath);
 		m_meshes.emplace_back(pointsMesh);
 		numberOfMeshes++;
 	}
@@ -74,7 +74,7 @@ void GraphicsApplication::initCalculatedSurface(std::vector<Vertex4<float>>* sur
 	std::string trianglesMeshName = "surface_" + std::to_string(this->numberOfMeshes);
 	auto trianglesMesh = new MeshTriangles(surface, trianglesMeshName);
 
-	trianglesMesh->init(m_camera);
+	trianglesMesh->init(m_camera, shaderPath);
 
 	m_meshes.emplace_back(trianglesMesh);
 

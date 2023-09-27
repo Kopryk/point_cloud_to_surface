@@ -107,9 +107,13 @@ void MeshLines::updateUniforms()
 
 void MeshLines::initializeShader()
 {
+	auto fragmentShaderPath = pathToShaderDir + "/normal_vectors_fragment_shader.glsl";
+	auto vertexShaderPath = pathToShaderDir + "/normal_vectors_vertex_shader.glsl";
 
-	m_shader = new Shader(R"(C:/Users/s1560/Desktop/magisterka_projekt/point_cloud_to_surface/resources/shaders/normal_vectors_vertex_shader.glsl)",
-		R"(C:/Users/s1560/Desktop/magisterka_projekt/point_cloud_to_surface/resources/shaders/normal_vectors_fragment_shader.glsl)");
+	m_shader = new Shader(vertexShaderPath, fragmentShaderPath);
+
+	//m_shader = new Shader(R"(C:/Users/s1560/Desktop/magisterka_projekt/point_cloud_to_surface/resources/shaders/normal_vectors_vertex_shader.glsl)",
+	//	R"(C:/Users/s1560/Desktop/magisterka_projekt/point_cloud_to_surface/resources/shaders/normal_vectors_fragment_shader.glsl)");
 }
 
 void MeshLines::initMvp()

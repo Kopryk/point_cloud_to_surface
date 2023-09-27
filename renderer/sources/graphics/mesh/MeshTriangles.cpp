@@ -65,8 +65,12 @@ void MeshTriangles::updateUniforms()
 
 void MeshTriangles::initializeShader()
 {
-	m_shader = new Shader(R"(C:/Users/s1560/Desktop/magisterka_projekt/point_cloud_to_surface/resources/shaders/triangles_vertex_shader.glsl)",
-		R"(C:/Users/s1560/Desktop/magisterka_projekt/point_cloud_to_surface/resources/shaders/triangles_fragment_shader.glsl)");
+
+	auto fragmentShaderPath = pathToShaderDir + "/triangles_fragment_shader.glsl";
+	auto vertexShaderPath = pathToShaderDir + "/triangles_vertex_shader.glsl";
+
+	m_shader = new Shader(vertexShaderPath, fragmentShaderPath);
+
 }
 
 void MeshTriangles::initMvp()

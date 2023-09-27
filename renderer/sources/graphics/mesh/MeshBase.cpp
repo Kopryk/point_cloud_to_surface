@@ -22,8 +22,9 @@ MeshBase::~MeshBase()
     delete m_shader;
 }
 
-void MeshBase::init(Camera *camera)
+void MeshBase::init(Camera *camera, std::string& pathToShaderDir)
 {
+    this->pathToShaderDir = pathToShaderDir;
     m_camera = camera;
 
     initializeShader();

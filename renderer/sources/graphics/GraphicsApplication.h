@@ -34,6 +34,8 @@ public:
 	void initCalculatedSurface(std::vector<Vertex4<float>>* surface);
 	void mainLoop();
 	void saveAsObj(std::vector < Vertex4<float>>& points, const std::string& name);
+	
+	std::string shaderPath = "";
 
 private:
 	GraphicsApplication() = default;
@@ -53,6 +55,7 @@ private:
 	float gridSizeInPercent = 1.0;
 	float dilationVoxelSizeInPercent = 1.0;
 	uint32_t dilationIteration = 2;
+	
 
 };
 

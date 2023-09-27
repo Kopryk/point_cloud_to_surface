@@ -45,8 +45,13 @@ void MeshPointsWithColor::updateUniforms()
 
 void MeshPointsWithColor::initializeShader()
 {
-	m_shader = new Shader(R"(C:/Users/s1560/Desktop/magisterka_projekt/point_cloud_to_surface/resources/shaders/points_with_colors_vertex_shader.glsl)",
-		R"(C:/Users/s1560/Desktop/magisterka_projekt/point_cloud_to_surface/resources/shaders/points_with_colors_fragment_shader.glsl)");
+	auto fragmentShaderPath = pathToShaderDir + "/points_with_colors_fragment_shader.glsl";
+	auto vertexShaderPath = pathToShaderDir + "/points_with_colors_vertex_shader.glsl";
+
+	m_shader = new Shader(vertexShaderPath, fragmentShaderPath);
+
+	//m_shader = new Shader(R"(C:/Users/s1560/Desktop/magisterka_projekt/point_cloud_to_surface/resources/shaders/points_with_colors_vertex_shader.glsl)",
+	//	R"(C:/Users/s1560/Desktop/magisterka_projekt/point_cloud_to_surface/resources/shaders/points_with_colors_fragment_shader.glsl)");
 }
 
 void MeshPointsWithColor::initMvp()
@@ -76,7 +81,7 @@ void MeshPointsWithColor::initVertexBuffer()
 	// colors
 	m_vertexBufferLayout->addElement<Vertex4<float>>();
 
-	m_vertexArray->linkVertexBuffer(*m_vertexBuffer, *m_vertexBufferLayout, 0 );
+	m_vertexArray->linkVertexBuffer(*m_vertexBuffer, *m_vertexBufferLayout, 0);
 	m_vertexArray->linkVertexBuffer(*m_vertexBufferColors, *m_vertexBufferLayout, 1);
 
 	m_vertexArray->unbind();
