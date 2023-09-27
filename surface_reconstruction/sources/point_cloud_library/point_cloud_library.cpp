@@ -331,7 +331,7 @@ std::unique_ptr<PointCloudData>  PointCloudLibrary::calculateSurface(std::vector
 		pcl::MarchingCubesHoppe<pcl::PointNormal> marchingCubesHoppe;
 		marchingCubesHoppe.setIsoLevel(0);
 		marchingCubesHoppe.setGridResolution(gridResolution, gridResolution, gridResolution);
-		marchingCubesHoppe.setPercentageExtendGrid(0.22f);
+		marchingCubesHoppe.setPercentageExtendGrid(0.2f);
 		marchingCubesHoppe.setInputCloud(cloud_with_normals);
 		marchingCubesHoppe.setSearchMethod(tree2);
 
