@@ -151,7 +151,7 @@ std::unique_ptr<PointCloudData> PointCloudLibrary::loadPoints()
 
 }
 
-std::unique_ptr<PointCloudData>  PointCloudLibrary::calculateSurface(std::vector <Vertex4<float>>& pointCloud, PointCloudOptimizationMode optimizationMode, SurfaceReconstructionMode reconstructionMode, uint32_t depthOctree, uint32_t gridResolution, double gridSizeInPercent, double neighbourRangeInPercent, float dilationVoxelSizeInPercent, uint32_t dilationIteration)
+std::unique_ptr<PointCloudData>  PointCloudLibrary::calculateSurface(std::vector <Vertex4<float>>& pointCloud, PointCloudOptimizationMode optimizationMode, SurfaceReconstructionMode reconstructionMode, uint32_t depthOctree, uint32_t gridResolution, uint32_t kNeigborsForNormals, double isoValue, double percentageExtendGrid, double gridSizeInPercent, double neighbourRangeInPercent, double neighbourMLSRangeInPercent, float dilationVoxelSizeInPercent, uint32_t dilationIteration)
 {
 	// gridSizeInPercent = 0.0 - 1.0
 	// neighbourRangeInPercent = 0.0 - 1.0
@@ -196,10 +196,23 @@ std::unique_ptr<PointCloudData>  PointCloudLibrary::calculateSurface(std::vector
 	}
 
 	double neighborSearchRadius = (maxX - minX) * neighbourRangeInPercent;
-
 	double dilatationVoxelSize = (maxX - minX) * dilationVoxelSizeInPercent;
+	double mlsRangeRadius = (maxX - minX) * neighbourMLSRangeInPercent;
 
-	std::cout << " neighborSearchRadius = " << neighborSearchRadius << std::endl;
+
+
+	std::cout << "depthOctree = " << depthOctree << std::endl;
+	std::cout << "gridResolution = " << gridResolution << std::endl;
+	std::cout << "kNeigborsForNormals = " << kNeigborsForNormals << std::endl;
+	std::cout << "isoValue = " << isoValue << std::endl;
+	std::cout << "percentageExtendGrid = " << percentageExtendGrid << std::endl;
+	std::cout << "gridSizeInPercent = " << gridSizeInPercent << std::endl;
+	std::cout << "neighbourRangeInPercent = " << neighbourRangeInPercent << std::endl;
+	std::cout << "neighbourMLSRangeInPercent = " << neighbourMLSRangeInPercent << std::endl;
+	std::cout << "dilationVoxelSizeInPercent = " << dilationVoxelSizeInPercent << std::endl;
+	std::cout << "dilationIteration = " << dilationIteration << std::endl;
+
+
 	cloud->points.resize(pointCloud.size());
 
 	for (int i = 0; i < pointCloud.size(); i++) {
@@ -221,21 +234,22 @@ std::unique_ptr<PointCloudData>  PointCloudLibrary::calculateSurface(std::vector
 
 		Clock clock;
 		sor.filter(*cloudFiltered);
-		auto time = clock.getTimeInMilliseconds();
-		std::cout << "Grid filter time= " << time << std::endl;
-		std::cout << "cloudFiltered size=" << cloudFiltered->size() << std::endl;
+		std::cout << "PointCloudOptimizationMode::GridFilter \n";
+		LogHelper::logTimeInMS(clock.getTimeInMilliseconds());
+
+		std::cout << "AFTER: cloudFiltered size=" << cloudFiltered->size() << std::endl;
 
 		tree->setInputCloud(cloudFiltered);
 		n.setInputCloud(cloudFiltered);
 		n.setSearchMethod(tree);
-		n.setKSearch(21);
+		n.setKSearch(kNeigborsForNormals);
 		n.compute(*normals);
 	}
 	else if (optimizationMode == PointCloudOptimizationMode::None) {
 		tree->setInputCloud(cloud);
 		n.setInputCloud(cloud);
 		n.setSearchMethod(tree);
-		n.setKSearch(21);
+		n.setKSearch(kNeigborsForNormals);
 		n.compute(*normals);
 	}
 
@@ -243,40 +257,46 @@ std::unique_ptr<PointCloudData>  PointCloudLibrary::calculateSurface(std::vector
 
 	if (optimizationMode == PointCloudOptimizationMode::GridFilter) {
 		pcl::concatenateFields(*cloudFiltered, *normals, *cloud_with_normals);
-
-		std::cout << "PointCloudOptimizationMode::GridFilter done\n";
 	}
 	else if (optimizationMode == PointCloudOptimizationMode::MLS) {
 
+
 		pcl::MovingLeastSquares<pcl::PointXYZ, pcl::PointNormal> mls;
 		mls.setInputCloud(cloud);
-		mls.setPolynomialOrder(2);
+		//mls.setPolynomialOrder(2);
 		mls.setSearchMethod(pcl::search::KdTree<pcl::PointXYZ>::Ptr(new pcl::search::KdTree<pcl::PointXYZ>));
-		mls.setSearchRadius(neighborSearchRadius);
+		mls.setPolynomialOrder(2);
+		mls.setSearchRadius(mlsRangeRadius);
 		mls.setComputeNormals(true);
+		mls.setNumberOfThreads(8);
 
 		Clock clock;
 		mls.process(*cloud_with_normals);
-		auto time = clock.getTimeInMilliseconds();
-		std::cout << "PointCloudOptimizationMode::MLS time=" << time << std::endl;
-		std::cout << "cloud_with_normals size = " << cloud_with_normals->size() << std::endl;
+
+
+		std::cout << "PointCloudOptimizationMode::MLS \n";
+		LogHelper::logTimeInMS(clock.getTimeInMilliseconds());
+		std::cout << "AFTER: cloud_with_normals size = " << cloud_with_normals->points.size() << std::endl;
 	}
 	else if (optimizationMode == PointCloudOptimizationMode::MLSUpsampling) {
 
 		pcl::MovingLeastSquares<pcl::PointXYZ, pcl::PointNormal> mls;
 		mls.setInputCloud(cloud);
-		mls.setPolynomialOrder(2);
+		//mls.setPolynomialOrder(2);
 		mls.setSearchMethod(pcl::search::KdTree<pcl::PointXYZ>::Ptr(new pcl::search::KdTree<pcl::PointXYZ>));
-		mls.setSearchRadius(neighborSearchRadius);
+		mls.setSearchRadius(mlsRangeRadius);
 		mls.setUpsamplingMethod(pcl::MovingLeastSquares<pcl::PointXYZ, pcl::PointNormal>::VOXEL_GRID_DILATION);
 		mls.setDilationVoxelSize(dilatationVoxelSize);
 		mls.setDilationIterations(dilationIteration);
 		mls.setComputeNormals(true);
+		mls.setNumberOfThreads(8);
 
 		Clock clock;
 		mls.process(*cloud_with_normals);
-		auto time = clock.getTimeInMilliseconds();
-		std::cout << "PointCloudOptimizationMode::MLSUpsampling time=" << time << std::endl;
+		std::cout << "PointCloudOptimizationMode::MLSUpsampling \n";
+		LogHelper::logTimeInMS(clock.getTimeInMilliseconds());
+		std::cout << "AFTER: cloud_with_normals size = " << cloud_with_normals->size() << std::endl;
+
 	}
 	else if (optimizationMode == PointCloudOptimizationMode::None) {
 		pcl::concatenateFields(*cloud, *normals, *cloud_with_normals);
@@ -285,8 +305,6 @@ std::unique_ptr<PointCloudData>  PointCloudLibrary::calculateSurface(std::vector
 		std::cerr << "Wrong optimizationMode\n";
 		std::abort();
 	}
-
-
 
 	pcl::PolygonMesh triangles;
 
@@ -297,8 +315,9 @@ std::unique_ptr<PointCloudData>  PointCloudLibrary::calculateSurface(std::vector
 
 		Clock clock;
 		poisson.reconstruct(triangles);
-		auto time = clock.getTimeInMilliseconds();
-		std::cout << "SurfaceReconstructionMode::Poisson time=" << time << std::endl;
+		std::cout << "SurfaceReconstructionMode::Poisson" << std::endl;
+		LogHelper::logTimeInMS(clock.getTimeInMilliseconds());
+
 	}
 	else if (reconstructionMode == SurfaceReconstructionMode::GreedyProjectionTriangulation) {
 		pcl::search::KdTree<pcl::PointNormal>::Ptr tree2(new pcl::search::KdTree<pcl::PointNormal>);
@@ -320,8 +339,9 @@ std::unique_ptr<PointCloudData>  PointCloudLibrary::calculateSurface(std::vector
 
 		Clock clock;
 		greedProjectionTriangulation.reconstruct(triangles);
-		auto time = clock.getTimeInMilliseconds();
-		std::cout << "SurfaceReconstructionMode::GreedyProjectionTriangulation time=" << time << std::endl;
+		std::cout << "SurfaceReconstructionMode::GreedyProjectionTriangulation" << std::endl;
+		LogHelper::logTimeInMS(clock.getTimeInMilliseconds());
+
 
 	}
 	else if (reconstructionMode == SurfaceReconstructionMode::MarchingCubesHoppe) {
@@ -329,16 +349,16 @@ std::unique_ptr<PointCloudData>  PointCloudLibrary::calculateSurface(std::vector
 		tree2->setInputCloud(cloud_with_normals);
 
 		pcl::MarchingCubesHoppe<pcl::PointNormal> marchingCubesHoppe;
-		marchingCubesHoppe.setIsoLevel(0);
+		marchingCubesHoppe.setIsoLevel(isoValue);
 		marchingCubesHoppe.setGridResolution(gridResolution, gridResolution, gridResolution);
-		marchingCubesHoppe.setPercentageExtendGrid(0.2f);
+		marchingCubesHoppe.setPercentageExtendGrid(percentageExtendGrid);
 		marchingCubesHoppe.setInputCloud(cloud_with_normals);
 		marchingCubesHoppe.setSearchMethod(tree2);
 
 		Clock clock;
 		marchingCubesHoppe.reconstruct(triangles);
-		auto time = clock.getTimeInMilliseconds();
-		std::cout << "SurfaceReconstructionMode::MarchingCubesHoppe time=" << time << std::endl;;
+		std::cout << "SurfaceReconstructionMode::MarchingCubesHoppe" << std::endl;
+		LogHelper::logTimeInMS(clock.getTimeInMilliseconds());
 	}
 
 	pcl::PointCloud<pcl::PointXYZ> cloud2;
@@ -346,6 +366,9 @@ std::unique_ptr<PointCloudData>  PointCloudLibrary::calculateSurface(std::vector
 
 	surface->surface.clear();
 	surface->surface.reserve(triangles.polygons.size() * 3);
+
+	std::cout << "Model after reconstruction have =" << triangles.polygons.size() * 3 << " points" << std::endl;
+
 
 	for (const auto& triangle : triangles.polygons) {
 		pcl::PointXYZ p1 = cloud2.points[triangle.vertices[0]];
@@ -367,9 +390,6 @@ std::unique_ptr<PointCloudData>  PointCloudLibrary::calculateSurface(std::vector
 		//std::cout << "P3: (" << p3.x << ", " << p3.y << ", " << p3.z << ")" << std::endl;
 	}
 
-	std::cout << "computeMeanSquaredError start:" << std::endl;
-
-
 	pcl::PointCloud<pcl::PointXYZ>::Ptr surfaceReconstructed(new pcl::PointCloud<pcl::PointXYZ>);
 
 	for (const auto& polygon : triangles.polygons) {
@@ -379,15 +399,16 @@ std::unique_ptr<PointCloudData>  PointCloudLibrary::calculateSurface(std::vector
 	}
 
 	surfaceReconstructed->width = static_cast<uint32_t>(surfaceReconstructed->points.size());
-	surfaceReconstructed->height = 1;  
+	surfaceReconstructed->height = 1;
 
-	auto meanSquaredError = computeMeanSquaredError(cloud, surfaceReconstructed);
-	std::cout << "meanSquaredError = " << meanSquaredError << std::endl;
-
-	std::cout << std::endl << std::endl;
+	auto meanSquaredError1 = computeMeanSquaredError(cloud, surfaceReconstructed);
+	std::cout << "meanSquaredError1 = " << meanSquaredError1 << std::endl;
 
 
+	auto meanSquaredError2 = computeMeanSquaredError(surfaceReconstructed, cloud);
+	std::cout << "meanSquaredError2 = " << meanSquaredError2 << std::endl;
 
+	std::cout << "****************************************************************************" << std::endl;
 
 	return surface;
 }
@@ -407,7 +428,7 @@ float PointCloudLibrary::computeMeanSquaredError(const pcl::PointCloud<pcl::Poin
 		std::vector<int> pointIdxNKNSearch(1);
 		std::vector<float> pointNKNSquaredDistance(1);
 
-	
+
 		if (kdtree.nearestKSearch(point, 1, pointIdxNKNSearch, pointNKNSquaredDistance) > 0)
 		{
 			sumSquaredDistances += pointNKNSquaredDistance[0];

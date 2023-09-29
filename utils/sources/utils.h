@@ -1,6 +1,7 @@
 #pragma once 
 #include <vector>
 #include <chrono>
+#include <iostream>
 
 namespace UTILS {
 
@@ -9,11 +10,7 @@ namespace UTILS {
 	class Helper {
 	public:
 
-
-
 	};
-
-
 
 }
 
@@ -87,4 +84,49 @@ public:
 
 private:
 	std::chrono::high_resolution_clock::time_point startTime;
+};
+
+class LogHelper {
+
+public:
+
+	static void logSurfaceReconsructionMode(SurfaceReconstructionMode mode) {
+		std::cout << "SurfaceReconstructionMode = " << surfaceReconstructionModeToString(mode) << std::endl;
+	}
+
+	static void logPointCloudOptimizationMode(PointCloudOptimizationMode mode) {
+		std::cout << "PointCloudOptimizationMode = " << pointCloudOptimizationModeToString(mode) << std::endl;
+	}
+
+	static void logTimeInMS(uint64_t time) {
+		std::cout << "time = " << time << "ms" << std::endl;
+	}
+
+
+
+private:
+	static std::string surfaceReconstructionModeToString(SurfaceReconstructionMode mode) {
+		switch (mode) {
+		case Poisson: return "Poisson";
+		case GreedyProjectionTriangulation: return "GreedyProjectionTriangulation";
+		case MarchingCubesHoppe: return "MarchingCubesHoppe";
+		}
+
+		return "";
+	}
+
+	static std::string pointCloudOptimizationModeToString(PointCloudOptimizationMode mode) {
+		switch (mode) {
+		case None: return "None";
+		case GridFilter: return "GridFilter";
+		case MLS: return "MLS";
+		case MLSUpsampling: return "MLSUpsampling";
+		}
+
+		return "";
+	}
+
+
+
+
 };

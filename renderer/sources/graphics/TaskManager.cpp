@@ -28,25 +28,34 @@ bool TaskManager::isJobDone() {
 	return jobDone;
 }
 
-void TaskManager::startSurfaceReconstruction(std::vector<Vertex4<float>>* data, PointCloudOptimizationMode optimizationMode, SurfaceReconstructionMode reconstructionMode, uint32_t depthOctree, uint32_t gridResolution, double gridSizeInPercent, double neighbourRangeInPercent, float dilationVoxelSizeInPercent, uint32_t dilationIteration) {
+void TaskManager::startSurfaceReconstruction(std::vector<Vertex4<float>>* data, PointCloudOptimizationMode optimizationMode, SurfaceReconstructionMode reconstructionMode,
+	uint32_t depthOctree, uint32_t gridResolution, uint32_t kNeigborsForNormals, double isoValue, double gridSizeInPercent, double percentageExtendGrid,
+	double neighbourRangeInPercent, double neighbourMLSRangeInPercent, float dilationVoxelSizeInPercent, uint32_t dilationIteration) {
 	std::lock_guard<std::mutex> lock(mtx);
 	if (jobRunning == false) {
 		jobDone = false;
 		jobRunning = true;
-		worker = std::thread(&TaskManager::taskSurfaceReconstruction, this, data, optimizationMode, reconstructionMode, depthOctree, gridResolution, gridSizeInPercent, neighbourRangeInPercent, dilationVoxelSizeInPercent, dilationIteration);
+		worker = std::thread(&TaskManager::taskSurfaceReconstruction, this, data, optimizationMode, reconstructionMode, depthOctree, gridResolution, kNeigborsForNormals, isoValue, gridSizeInPercent, percentageExtendGrid, neighbourRangeInPercent, neighbourMLSRangeInPercent, dilationVoxelSizeInPercent, dilationIteration);
 		worker.detach();
 	}
 }
 
-void TaskManager::taskSurfaceReconstruction(TaskManager* taskManager, std::vector<Vertex4<float>>* data, PointCloudOptimizationMode optimizationMode, SurfaceReconstructionMode reconstructionMode, uint32_t depthOctree, uint32_t gridResolution, double gridSizeInPercent, double neighbourRangeInPercent, float dilationVoxelSizeInPercent, uint32_t dilationIteration) {
+void TaskManager::taskSurfaceReconstruction(TaskManager* taskManager, std::vector<Vertex4<float>>* data, PointCloudOptimizationMode optimizationMode,
+	SurfaceReconstructionMode reconstructionMode, uint32_t depthOctree, uint32_t gridResolution, uint32_t kNeigborsForNormals,
+	double isoValue, double gridSizeInPercent, double percentageExtendGrid, double neighbourRangeInPercent, double neighbourMLSRangeInPercent,
+	float dilationVoxelSizeInPercent, uint32_t dilationIteration) {
 	taskManager->result = taskManager->pcl->calculateSurface(
 		*data,
 		optimizationMode,
 		reconstructionMode,
 		depthOctree,
 		gridResolution,
+		kNeigborsForNormals,
+		isoValue,
 		gridSizeInPercent,
+		percentageExtendGrid,
 		neighbourRangeInPercent,
+		neighbourMLSRangeInPercent,
 		dilationVoxelSizeInPercent,
 		dilationIteration);
 	std::lock_guard<std::mutex> lock(taskManager->mtx);

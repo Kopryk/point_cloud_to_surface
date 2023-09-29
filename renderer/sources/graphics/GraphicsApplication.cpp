@@ -302,23 +302,37 @@ void GraphicsApplication::mainLoop()
 					static float neighbourRangeInPercent = 2.0;
 					ImGui::SliderFloat("Neighbors range \nin %: ", &neighbourRangeInPercent, 0.1f, 25.0f);
 
-					static const char* optimizationOptions[] = { "None", "Grid Filter", "Moving Least Squares", "MLS - Upsampling"};
+					static const char* optimizationOptions[] = { "None", "Grid Filter", "Moving Least Squares", "MLS - Upsampling" };
 					ImGui::Combo("PointCloud\n optimization: ", reinterpret_cast<int*>(&optimizationMode), optimizationOptions, IM_ARRAYSIZE(optimizationOptions));
 
+
+					static int kNeigborsForNormals = 20;
+					ImGui::SliderInt("kNeigborsForNormals: ", &kNeigborsForNormals, 5, 50);
+
 					if (optimizationMode == PointCloudOptimizationMode::GridFilter) {
-						ImGui::SliderFloat("Filter grid\n in %: ", &gridSizeInPercent, 0.1f, 10.0f);
+						ImGui::SliderFloat("Filter grid\n in %: ", &gridSizeInPercent, 0.1f, 20.0f);
 					}
 
 					if (optimizationMode == PointCloudOptimizationMode::MLSUpsampling) {
 						ImGui::SliderFloat("Dilatation Voxel\n in %: ", &dilationVoxelSizeInPercent, 0.1f, 10.0f);
 						ImGui::SliderInt("Dilatation iterations: ", reinterpret_cast<int*>(&dilationIteration), 1, 16);
+						ImGui::SliderFloat("Neighbors MLS range \nin %: ", &neighbourRangeMLSInPercent, 0.1f, 25.0f);
+					}
+
+					if (optimizationMode == PointCloudOptimizationMode::MLS) {
+						ImGui::SliderFloat("Neighbors MLS range \nin %: ", &neighbourRangeMLSInPercent, 0.1f, 25.0f);
 					}
 
 					static const char* reconstructionOptions[] = { "Poisson", "GreedyProjectionTriangulation", "MarchingCubesHoppe" };
 					ImGui::Combo("Reconstruction\n mode: ", reinterpret_cast<int*>(&reconstructionMode), reconstructionOptions, IM_ARRAYSIZE(reconstructionOptions));
 
+					static float isoValue = 0.0;
+					static float percentageExtendGrid = 0.1;
+
 					if (reconstructionMode == SurfaceReconstructionMode::MarchingCubesHoppe) {
-						ImGui::SliderInt("Grid Resolution: ", reinterpret_cast<int*>(&gridResolution), 64, 256);
+						ImGui::SliderInt("Grid Resolution: ", reinterpret_cast<int*>(&gridResolution), 16, 128);
+						ImGui::SliderFloat("IsoValue: ", &isoValue, 0.0, 1.0);
+						ImGui::SliderFloat("percentageExtendGrid: ", &percentageExtendGrid, 0.01, 0.25);
 					}
 
 					else if (reconstructionMode == SurfaceReconstructionMode::Poisson) {
@@ -328,7 +342,14 @@ void GraphicsApplication::mainLoop()
 					if (ImGui::Button("Calculate Surface"))
 					{
 
-						taskManager.startSurfaceReconstruction(m_meshes[lastClickedMesh]->data, optimizationMode, reconstructionMode, depthOctree, gridResolution, gridSizeInPercent / 100.0, neighbourRangeInPercent / 100.0, dilationVoxelSizeInPercent, dilationIteration);
+						std::cout << std::endl << "SURFACE RECONSTRUCTION = " << m_meshes[lastClickedMesh]->m_name << std::endl;
+						LogHelper::logPointCloudOptimizationMode(optimizationMode);
+						LogHelper::logSurfaceReconsructionMode(reconstructionMode);
+
+						double percentageExtendGrid = 0.02;
+
+
+						taskManager.startSurfaceReconstruction(m_meshes[lastClickedMesh]->data, optimizationMode, reconstructionMode, depthOctree, gridResolution, kNeigborsForNormals, isoValue, gridSizeInPercent / 100.0, percentageExtendGrid, neighbourRangeInPercent / 100.0, neighbourRangeMLSInPercent / 100.0, dilationVoxelSizeInPercent/100.0, dilationIteration);
 						taskManager.isSurfaceReconstructionResultReceived = false;
 					}
 
